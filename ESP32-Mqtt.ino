@@ -135,6 +135,9 @@ double KalibrT = 1.33;
 double KalibrV = 0.70;
 int PwrAmp;
 bool IsConnected = false;
+unsigned long lastClapTime = 0;
+bool firstClapDetected = false;
+const unsigned long doubleClapWindow = 500;
 int Timer1, Timer2;
 
 void setup() {
@@ -213,17 +216,29 @@ void setup() {
 }
 
 void detectClap() {
-  int clapValue = analogRead(ClapSensor);
+ int clapValue = analogRead(ClapSensor);
+  unsigned long currentTime = millis();
+
   if (clapValue > ClapThreshold) {
-    delay(CekejDetectClap);  // Zpoždění pro zabránění falešných detekcí
-    if (Zap == 0)
-    {
-      Zap = Stisk;
+    if (!firstClapDetected) {
+      // První tlesknutí
+      firstClapDetected = true;
+      lastClapTime = currentTime;
+    } else {
+      // Potenciální druhé tlesknutí
+      if (currentTime - lastClapTime <= doubleClapWindow) {
+        // Dvojtlesk detekován
+        Zap = !Zap;
+        firstClapDetected = false; // Reset detekce
+      } else {
+        // Příliš dlouhý interval, považujeme za nový první tlesk
+        lastClapTime = currentTime;
+      }
     }
-    else
-    {
-      Zap = 0;
-    }
+    delay(CekejDetectClap); // Zpoždění pro zabránění falešných detekcí
+  } else if (firstClapDetected && (currentTime - lastClapTime > doubleClapWindow)) {
+    // Vypršelo časové okno pro druhé tlesknutí
+    firstClapDetected = false;
   }
 }
 
