@@ -62,26 +62,24 @@
 //                       |           VCC            |-------------| 3V2  14     15 VBUS |             |                          |
 //                       +--------------------------+             +---------------------+             +--------------------------+
 //
-// Doplnit nastavení hlasitosti tlesknutí přes MQTT
-// Přidat DHT-11
-// Dvě, tři světla
+//
 // uložení některých dat do eprom (kalibrace dht, prodleva odesílání dat,nastavení hlasitosti a.t.d.)
 // Přidat mikrotlačítko reset
 // Průměrovat více měření mezi odesíláním
-// Tlačítko zapíná/vypíná led / RGB led / relé, pokud je použité ovládání tlesknutím, tak taky
+//
 
 
-#include <PubSubClient.h> // https://github.com/knolleary/pubsubclient
-#include <WiFi.h>         // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
-#include <WiFiManager.h>  // https://github.com/tzapu/WiFiManager
-#include <ArduinoJson.h>  // https://github.com/bblanchon/ArduinoJson
-#include <DHT.h>          // https://github.com/adafruit/DHT-sensor-library
-#include <Preferences.h>  // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
+#include <PubSubClient.h>         // https://github.com/knolleary/pubsubclient
+#include <WiFi.h>                 // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
+#include <WiFiManager.h>          // https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>          // https://github.com/bblanchon/ArduinoJson
+#include <DHT.h>                  // https://github.com/adafruit/DHT-sensor-library
+#include <Preferences.h>          // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
 
-#define DHTTYPE DHT11      // Typ DHT sezoru teploty a vlhkosti
+#define DHTTYPE DHT11             // Typ DHT sezoru teploty a vlhkosti
 #define PREF_NAMESPACE "mqtt-app"
-uint8_t DHTPin = 3;        // Nastavení datového pinu DHT
-DHT dht(DHTPin, DHTTYPE);  // Inicializace DHT senzoru
+uint8_t DHTPin = 3;               // Nastavení datového pinu DHT
+DHT dht(DHTPin, DHTTYPE);         // Inicializace DHT senzoru
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -97,20 +95,25 @@ const bool Temp = true;           // !! CHANGE !!  Použití DHT sezoru měřen�
 const int Stisk = 7;              // !! CHANGE !!  Použití tlačítka                   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 / RGB - 4 , Relé - 16
 const bool AmpMeter = false;      // !! CHANGE !!  Zapnutí měření odběru
 
+// Mqtt proměnné nastavení
 char mqtt_server[40];             // MQTT IP adress
 char mqtt_port[6] = "1883";       // MQTT port
 char mqtt_username[32];           // MQTT User name
 char mqtt_password[32];           // MQTT Password
+// Nastavení vstupů ESP
 const int Sw = 2;                 // Tlačítko
-const int PwrSw = 9;              // Ledka / transistor zapnuti
-const int LedWi = 7;              // Ledka připojení
-const int Re = 39;                // Relé
+const int ClapSensor = 12;        // Zvukový senzor připojený na analogový vstup GPIO34
+const int AmpPin = 40;            // Vstup ampérmetru
+// Výstupy kontrolky led
 const int LedPWR = 11;            // Ledka power
+const int LedWi = 7;              // Ledka připojení
+const int PwrSw = 9;              // Ledka / transistor zapnuti
+// Výstupy ovládání 
+const int Re = 39;                // Relé
 const int PwrRed = 4;             // Ledka power (red)   / Světlo 1
 const int PwrGreen = 6;           // Ledka power (green) / Světlo 2
 const int PwrBlue = 8;            // Ledka power (blue)  / Světlo 3
-const int ClapSensor = 12;        // Zvukový senzor připojený na analogový vstup GPIO34
-const int AmpPin = 40;            // Ledka power (blue)  / Světlo 3
+
 const int ClapThreshold = 900;    // Nastavitelná hladina detekce tlesknutí
 const int CekejOdeslat = 16000;   // Prodleva mezi odesláním naměřených hodnot
 const int CekejMereniDHT = 6400;  // Prodleva mezi měřením DHT
@@ -138,7 +141,7 @@ bool IsConnected = false;
 unsigned long lastClapTime = 0;
 bool firstClapDetected = false;
 const unsigned long doubleClapWindow = 500;
-int Timer1, Timer2;
+int TimerOdeslat, TimerMereni;
 
 void setup() {
   pinMode(Sw, INPUT_PULLUP);   // Tlačítko
@@ -319,10 +322,10 @@ void aktivaceSvetel() {
 }
 
 void tempAndAmpMeter() {
-  Timer1 = Timer1 + 1;
-  Timer2 = Timer2 + 1;
-  if (Timer2 >= CekejMereniDHT) {
-    Timer2 = 0;  // Vynulování timeru
+  TimerOdeslat = TimerOdeslat + 1;
+  TimerMereni = TimerMereni + 1;
+  if (TimerMereni >= CekejMereniDHT) {
+    TimerMereni = 0;  // Vynulování timeru
     if (Temp) {
       senzorTemp();  // Načtení hodnoty ze seznoru DHT
     }
@@ -330,8 +333,8 @@ void tempAndAmpMeter() {
       measureAmp();  // Načtení hodnoty Ampermetru
     }
   }
-  if (Timer1 >= CekejOdeslat) {
-    Timer1 = 0;  // Vynulování timeru
+  if (TimerOdeslat >= CekejOdeslat) {
+    TimerOdeslat = 0;  // Vynulování timeru
     Poslat();
   }
 }
