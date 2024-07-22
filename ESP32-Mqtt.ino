@@ -1,0 +1,448 @@
+// Deska Deneyap Mini
+//
+// MQTT Client IoT
+// v1.0 20.03.2020
+// v1.1 14.02.2021 Prodloužení času stisknutí
+// v1.2 08.04.2021 Prodloužení času stisknutí , proměné názvu HostName a Svetlo
+// v2.0 12.06.2021 Oprava pžipojrní po výpadku WiFi , Prodloužení času stisknutí
+// v2.1 16.11.2021 Pokus o opravu rozkmitání zpětnou vazbou
+// v2.3 16.11.2021 Json objekt
+// v2.3 22.11.2021 Json výběr
+// v2.4 14.05.2023 Úprava restartu zažízení při problémech se spojením s WiFi / MQTT podle OpenAI
+//                  Přidíní funkce mikrofonu pro ovládání tlesknutím
+// v2.5 30.05.2023 Změna na ESP32
+//                  Počáteční nastavení WiFi pomocí WiFimanageru
+//                  Úprava velikosti JSON výstupu
+// v3.0 21.08.2023 Úprava na ESP32 Deneyap Mini
+//                  Rozdělení světel a relé
+//
+// ESP 32 Wroom mini S2
+// Mikrofon (KY-038) VCC → 3.3V , GNG → GND , A0 → GPIO34
+//
+//
+//                                Komponenty                       ESP 32 Wroom mini S2                       Komponenty
+//                       +--------------------------+             +---------------------+             +--------------------------+             +------+
+//                       |                          |             |                     |             |                  VCC     |-------------| VCC  |
+//                       |                          |-------------|-------       -------|-------------|   Měření proudu  DATA    |             |      |
+//                       |                          |             |      |       |      |             |                  GND     |-------------| GND  |
+//                       |                          |             |      |       |      |             +--------------------------+             +------+
+//                       |                          |-------------| RES  1      40  39  |-------------|          Relé            |-------------| GND  |
+//  +------+             +--------------------------+             |                     |             +--------------------------+             +------+
+//  | GND  |-------------|   Tlačítko k zapnutí     |-------------|-------       -------|             |                          |
+//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
+//  | VCC  |-------------|               VCC        |             |      |       |      |             |                          |
+//  |      |             |      DHT 11 - DATA       |-------------|  3   2      38  37  |             |                          |
+//  | GND  |-------------|               GND        |             |                     |             |                          |
+//  +------+             +--------------------------+             |                     |             +--------------------------+
+//  | GND  |-------------|  Led světlo červená (1)  |-------------|-------       -------|             |                          |
+//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
+//                       |                          |             |  5   4      36  35  |             |                          |
+//  +------+             +--------------------------+             |                     |             +--------------------------+
+//  | GND  |-------------|  Led světlo zelená (2)   |-------------|-------       -------|             |                          |
+//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
+//  | GND  |-------------|  Ledka připojení WiFi    |-------------|  7   6      34  33  |             |                          |
+//  +------+             +--------------------------+             |                     |             +--------------------------+
+//  | GND  |-------------|  Led světlo modrá (3)    |-------------|-------       -------|             |                          |
+//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
+//  | GND  |-------------| Ledka zapnuto / vypnuto  |-------------|  9   8       21  18 |             |                          |
+//  +------+             +--------------------------+             |                     |             +--------------------------+
+//                       |                          |             |-------       -------|             |                          |
+//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
+//  | GND  |-------------|     Ledka napájení       |-------------| 11   10     17  16  |             |                          |
+//  +------+             +--------------------------+             |                     |             +--------------------------+
+//                       |                          |             |-------       -------|-------------|           GND            |
+//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
+//  | GND  |-------------|        Mikrofon          |-------------| 13   12     GND GND |             |                          |
+//  +------+             +--------------------------+             |                     |             +--------------------------+
+//                       |                          |             |-------       -------|             |                          |
+//                       +--------------------------+             |      |       |      |             +--------------------------+
+//                       |           VCC            |-------------| 3V2  14     15 VBUS |             |                          |
+//                       +--------------------------+             +---------------------+             +--------------------------+
+//
+// Doplnit nastavení hlasitosti tlesknutí přes MQTT
+// Přidat DHT-11
+// Dvě, tři světla
+// uložení některých dat do eprom (kalibrace dht, prodleva odesílání dat,nastavení hlasitosti a.t.d.)
+// Přidat mikrotlačítko reset
+// Průměrovat více měření mezi odesíláním
+// Tlačítko zapíná/vypíná led / RGB led / relé, pokud je použité ovládání tlesknutím, tak taky
+
+
+#include <PubSubClient.h>
+#include <WiFi.h>
+#include <WiFiManager.h>  // https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>
+#include <DHT.h>
+#include <Preferences.h>
+
+#define DHTTYPE DHT11      // Typ DHT sezoru teploty a vlhkosti
+#define PREF_NAMESPACE "mqtt-app"
+uint8_t DHTPin = 3;        // Nastavení datového pinu DHT
+DHT dht(DHTPin, DHTTYPE);  // Inicializace DHT senzoru
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+Preferences preferences;
+
+// Rozdělit světla a relé
+const int LedType = 3;                  // !! CHANGE !!  Typ led světel ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8)
+#define WIFI_HOSTNAME "ESP32_12"  // !! CHANGE !! Název zařízení v síti
+const String Svetlo = "Svetlo_05";      // !! CHANGE !!  Topic název zařízení
+const bool Relay = false;         // !! CHANGE !!  Relé (Zásuvka)
+const bool Clap = false;          // !! CHANGE !!  Použití mikrofonu
+const bool Temp = true;           // !! CHANGE !!  Použití DHT sezoru měření teploty
+const int Stisk = 7;              // !! CHANGE !!  Použití tlačítka                   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 / RGB - 4 , Relé - 16
+const bool AmpMeter = false;      // !! CHANGE !!  Zapnutí měření odběru
+
+char mqtt_server[40];             // MQTT IP adress
+char mqtt_port[6] = "1883";       // MQTT port
+char mqtt_username[32];           // MQTT User name
+char mqtt_password[32];           // MQTT Password
+const int Sw = 2;                 // Tlačítko
+const int PwrSw = 9;              // Ledka / transistor zapnuti
+const int LedWi = 7;              // Ledka připojení
+const int Re = 39;                // Relé
+const int LedPWR = 11;            // Ledka power
+const int PwrRed = 4;             // Ledka power (red)   / Světlo 1
+const int PwrGreen = 6;           // Ledka power (green) / Světlo 2
+const int PwrBlue = 8;            // Ledka power (blue)  / Světlo 3
+const int ClapSensor = 12;        // Zvukový senzor připojený na analogový vstup GPIO34
+const int AmpPin = 40;            // Ledka power (blue)  / Světlo 3
+const int ClapThreshold = 900;    // Nastavitelná hladina detekce tlesknutí
+const int CekejOdeslat = 16000;   // Prodleva mezi odesláním naměřených hodnot
+const int CekejMereniDHT = 6400;  // Prodleva mezi měřením DHT
+const int CekejDetectClap = 50;   // Prodleva mezi detekcí tlesknutí
+long LastMsg = 0;
+int Value = 0;
+char SvetloChr[50];
+bool Tlac;
+bool Rep;
+String Zap_str;
+int OZap;  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+int Zap;   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+float Teplota;
+float Vlhkost;
+char Pwr[50];
+int Red = 254;
+int Green = 254;
+int Blue = 254;
+int LedL = 254;
+int Bright = 254;
+double KalibrT = 1.33;
+double KalibrV = 0.70;
+int PwrAmp;
+bool IsConnected = false;
+int Timer1, Timer2;
+
+void setup() {
+  pinMode(Sw, INPUT_PULLUP);   // Tlačítko
+  pinMode(PwrSw, OUTPUT);      // Kontrolka (zelená) zapnutí/vypnutí led/relé
+  pinMode(LedWi, OUTPUT);      // Kontrolka (modrá) připojení k WiFi a MQTT
+  pinMode(Re, OUTPUT);         // Pin relé
+  pinMode(LedPWR, OUTPUT);     // Ledka power
+  pinMode(PwrRed, OUTPUT);     // Ledka power (red)
+  pinMode(PwrGreen, OUTPUT);   // Ledka power (green)
+  pinMode(PwrBlue, OUTPUT);    // Ledka power (blue)
+  pinMode(ClapSensor, INPUT);  // Mikrofon
+  analogWrite(LedPWR, LedL);   // Kontrolka (červená) připojení ke zdroji
+  Serial.begin(115200);
+  delay(1500);
+  if (Temp) {
+    dht.begin();
+  }
+  preferences.begin(PREF_NAMESPACE, false);
+  
+  // Načtení uložených hodnot
+  String savedServer = preferences.getString("mqtt_server", "");
+  String savedPort = preferences.getString("mqtt_port", "");
+  
+  savedServer.toCharArray(mqtt_server, sizeof(mqtt_server));
+  savedPort.toCharArray(mqtt_port, sizeof(mqtt_port));
+  
+  WiFiManager wifiManager;
+
+  // Pokud chcete vymazat všechny uložené informace wifiManageru, odkomentujte následující řádku a spusťte jej jednou
+  //wifiManager.resetSettings();
+
+  // Přidání parametrů do WiFiManager portálu.
+  WiFiManagerParameter custom_mqtt_server("server", "mqtt server", mqtt_server, 40);
+  WiFiManagerParameter custom_mqtt_port("port", "mqtt port", mqtt_port, 6);
+  //WiFiManagerParameter custom_mqtt_username("user", "mqtt user", mqtt_username, 32);
+  //WiFiManagerParameter custom_mqtt_password("password", "mqtt password", mqtt_password, 32);
+  wifiManager.addParameter(&custom_mqtt_server);
+  wifiManager.addParameter(&custom_mqtt_port);
+  //wifiManager.addParameter(&custom_mqtt_username);
+  //wifiManager.addParameter(&custom_mqtt_password);
+
+  WiFi.setHostname(WIFI_HOSTNAME);
+  String apName = String(WIFI_HOSTNAME) + "_AP";
+  if (wifiManager.autoConnect(apName.c_str())) {
+    // Připojení proběhlo úspěšně, teď uložíme hodnoty do proměnných
+    strcpy(mqtt_server, custom_mqtt_server.getValue());
+    strcpy(mqtt_port, custom_mqtt_port.getValue());
+    //strcpy(mqtt_username, custom_mqtt_username.getValue());
+    //strcpy(mqtt_password, custom_mqtt_password.getValue());
+    preferences.putString("mqtt_server", mqtt_server);
+    preferences.putString("mqtt_port", mqtt_port);
+  } else {
+    Serial.println("Nepodařilo se připojit - vypršel časový limit");
+    ESP.restart();
+  }
+  preferences.end();
+  // Pokud se dostanete až sem, jste připojeni k WiFi
+  Serial.println("Připojeno k WiFi");
+  if (strcmp(mqtt_server, "") == 0) {
+    strlcpy(mqtt_server, "192.168.10.6", sizeof(mqtt_server));  // Pokud se nenačte z EEPROM nastaví default
+    Serial.println("Chyba načtení MQTT serveru z EEPROM");
+  }
+  Serial.print("MQTT server: ");
+  Serial.println(mqtt_server);
+  Serial.print("MQTT port: ");
+  Serial.println(mqtt_port);
+
+  client.setServer(mqtt_server, atoi(mqtt_port));
+  client.setCallback(callback);
+
+  Svetlo.toCharArray(SvetloChr, Svetlo.length() + 1);
+  connectToNetwork();  // Volání nové funkce pro připojení k nastavené WiFi a MQTT
+  Serial.println("Moje IP adresa je:");
+  Serial.println(WiFi.localIP());
+}
+
+void detectClap() {
+  int clapValue = analogRead(ClapSensor);
+  if (clapValue > ClapThreshold) {
+    delay(CekejDetectClap);  // Zpoždění pro zabránění falešných detekcí
+    if (Zap == 0)
+    {
+      Zap = Stisk;
+    }
+    else
+    {
+      Zap = 0;
+    }
+  }
+}
+
+void loop() {
+  OZap = Zap;
+  if (!IsConnected) {
+    connectToNetwork();
+  }
+
+  client.loop();
+
+  if (Clap) {
+    detectClap();
+  }
+
+  if (OZap == Zap) {
+    Push();
+  }
+
+  if (OZap != Zap) {
+    Poslat();
+    delay(300);
+  }
+  if (Relay) {
+    if (Zap & 16) {
+      digitalWrite(Re, HIGH);
+      ledKontolaZapnuti();
+    } else {
+      digitalWrite(Re, LOW);
+      ledKontolaZapnuti();
+    }
+  }
+
+  aktivaceSvetel();
+
+  if (Temp or AmpMeter) {  // Pokud je zapnuto měřění teploty, nebo ampermetr aktivuj timer
+    tempAndAmpMeter();
+  }
+
+  // Úprava nstavení jasu kontrolek
+  analogWrite(LedPWR, LedL);
+  analogWrite(LedWi, LedL);
+}
+
+void ledKontolaZapnuti() {
+  if (Zap > 0) {
+    analogWrite(PwrSw, LedL);
+  } else {
+    analogWrite(PwrSw, 0);
+  }
+}
+
+void aktivaceSvetel() {
+  if (Zap & 1) {
+    analogWrite(PwrRed, Red);
+    ledKontolaZapnuti();
+  }
+  if (Zap & 2) {
+    analogWrite(PwrGreen, Green);
+    ledKontolaZapnuti();
+  }
+  if (Zap & 4) {
+    analogWrite(PwrBlue, Blue);
+    ledKontolaZapnuti();
+  }
+  if (!(Zap & 1)) {
+    analogWrite(PwrRed, 0);
+    ledKontolaZapnuti();
+  }
+  if (!(Zap & 2)) {
+    analogWrite(PwrGreen, 0);
+    ledKontolaZapnuti();
+  }
+  if (!(Zap & 4)) {
+    analogWrite(PwrBlue, 0);
+    ledKontolaZapnuti();
+  }
+}
+
+void tempAndAmpMeter() {
+  Timer1 = Timer1 + 1;
+  Timer2 = Timer2 + 1;
+  if (Timer2 >= CekejMereniDHT) {
+    Timer2 = 0;  // Vynulování timeru
+    if (Temp) {
+      senzorTemp();  // Načtení hodnoty ze seznoru DHT
+    }
+    if (AmpMeter) {
+      measureAmp();  // Načtení hodnoty Ampermetru
+    }
+  }
+  if (Timer1 >= CekejOdeslat) {
+    Timer1 = 0;  // Vynulování timeru
+    Poslat();
+  }
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  char str[length + 1];
+  int i = 0;
+  for (i = 0; i < length; i++) {
+    str[i] = (char)payload[i];
+  }
+  str[i] = 0;  // Null termination
+  StaticJsonDocument<256> doc;
+  deserializeJson(doc, payload);
+  if (doc["on"] != nullptr) {
+    Zap = doc["on"];
+  }
+  if (doc["spectrumRGB"][0] != nullptr) {
+    Red = doc["spectrumRGB"][0];
+  }
+  if (doc["spectrumRGB"][1] != nullptr) {
+    Green = doc["spectrumRGB"][1];
+  }
+  if (doc["spectrumRGB"][2] != nullptr) {
+    Blue = doc["spectrumRGB"][2];
+  }
+  if (doc["brightArd"] != nullptr) {
+    LedL = doc["brightArd"];
+  }
+  if (doc["brightness"] != nullptr) {
+    Bright = doc["brightness"];
+    Bright = round(Bright * 2.54);
+  }
+  bool Stav;
+  if (doc["stav"] != nullptr) {
+    Poslat();
+  }
+}
+
+void reconnect() {
+  if (!client.connected()) {
+    IsConnected = false;
+  }
+}
+
+void Poslat() {
+  DynamicJsonDocument doc(256);
+  doc["on"] = Zap;
+  doc["ip"] = WiFi.localIP().toString();
+  doc["host"] = WIFI_HOSTNAME;
+  doc["signal"] = WiFi.RSSI();
+  doc["brightArd"] = LedL;
+  if (LedType == 1) {
+    doc["brightness"] = round(Bright / 2.54);
+  } else if (LedType == 2) {
+    JsonArray data = doc.createNestedArray("spectrumRGB");
+    data.add(Red);
+    data.add(Green);
+    data.add(Blue);
+  }
+  if (Temp) {
+    senzorTemp();
+    delay(50);
+    doc["temp"] = Teplota;
+    doc["hum"] = Vlhkost;
+
+    Serial.print("Teplota je ");
+    Serial.print(Teplota);
+    Serial.print(" °C a vlhkost je ");
+    Serial.print(Vlhkost);
+    Serial.println(" %RH");
+  }
+  char out[256];
+  int jsonSize = serializeJson(doc, out);
+  // Přidejte velikost JSON do dokumentu
+  doc["JSONsize"] = jsonSize;
+  // Serialize znovu s délkou JSON
+  serializeJson(doc, out);
+  client.publish(SvetloChr, out);
+}
+
+void Push() {
+  Tlac = digitalRead(Sw);  // Tlačítko
+  if (!Tlac) {
+    if (!Rep) {
+      if (Zap == 0) {
+        Zap = Stisk;
+      } else {
+        Zap = 0;
+      }
+      Rep = true;
+    }
+  } else {
+    Rep = false;
+  }
+}
+
+void senzorTemp() {
+  Teplota = (Teplota + dht.readTemperature() / KalibrT) / 2;
+  delay(100);
+  Vlhkost = (Vlhkost + dht.readHumidity() / KalibrV) / 2;
+  delay(100);
+}
+
+void measureAmp() {  // Měření hodnoty z ampermetru
+}
+
+void connectToNetwork() {
+  int reconnectAttempts = 0;
+  while (!client.connected()) {
+    while (WiFi.status() != WL_CONNECTED) {
+      analogWrite(LedWi, HIGH);
+      delay(50);
+      analogWrite(LedWi, LOW);
+      delay(50);
+    }
+    Serial.print("Pokus o pripojeni MQTT ...");
+    if (client.connect(WIFI_HOSTNAME)) {
+      Serial.println("pripojeno");
+      analogWrite(LedWi, LedL);
+      client.subscribe(SvetloChr);
+      IsConnected = true;
+    } else {
+      analogWrite(LedWi, LedL);
+      Serial.print("chyba, rc=");
+      Serial.print(client.state());
+      Serial.println(" opakuji znovu za 5 sekund");
+      delay(2500);
+      analogWrite(LedWi, 0);
+      delay(2500);
+    }
+  }
+}
