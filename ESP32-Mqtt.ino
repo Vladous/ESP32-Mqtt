@@ -16,6 +16,9 @@
 // v3.0 21.08.2023 Úprava na ESP32 Deneyap Mini
 //                  Rozdělení světel a relé
 //
+// ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
+// 
+//
 // ESP 32 Wroom mini S2
 // Mikrofon (KY-038) VCC → 3.3V , GNG → GND , A0 → GPIO34
 //
@@ -68,12 +71,12 @@
 // Tlačítko zapíná/vypíná led / RGB led / relé, pokud je použité ovládání tlesknutím, tak taky
 
 
-#include <PubSubClient.h>
-#include <WiFi.h>
+#include <PubSubClient.h> // https://github.com/knolleary/pubsubclient
+#include <WiFi.h>         // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
 #include <WiFiManager.h>  // https://github.com/tzapu/WiFiManager
-#include <ArduinoJson.h>
-#include <DHT.h>
-#include <Preferences.h>
+#include <ArduinoJson.h>  // https://github.com/bblanchon/ArduinoJson
+#include <DHT.h>          // https://github.com/adafruit/DHT-sensor-library
+#include <Preferences.h>  // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
 
 #define DHTTYPE DHT11      // Typ DHT sezoru teploty a vlhkosti
 #define PREF_NAMESPACE "mqtt-app"
@@ -85,9 +88,9 @@ PubSubClient client(espClient);
 Preferences preferences;
 
 // Rozdělit světla a relé
-const int LedType = 3;                  // !! CHANGE !!  Typ led světel ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8)
+const int LedType = 3;            // !! CHANGE !!  Typ led světel ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8)
 #define WIFI_HOSTNAME "ESP32_12"  // !! CHANGE !! Název zařízení v síti
-const String Svetlo = "Svetlo_05";      // !! CHANGE !!  Topic název zařízení
+const String Svetlo = "Svetlo_05";// !! CHANGE !!  Topic název zařízení
 const bool Relay = false;         // !! CHANGE !!  Relé (Zásuvka)
 const bool Clap = false;          // !! CHANGE !!  Použití mikrofonu
 const bool Temp = true;           // !! CHANGE !!  Použití DHT sezoru měření teploty
