@@ -63,6 +63,28 @@
 //                       +--------------------------+             +---------------------+             +--------------------------+
 //
 //
+//
+// JSON callback
+// "on": true                   boolean,        Určuje, zda je zařízení zapnuto nebo vypnuto,             true / false
+// "spectrumRGB": [255, 0, 0]   integer array,  Pole tří hodnot, které reprezentují barvy v RGB spektru,  0 - 255
+// "brightArd": 128             integer,        Hodnota jasu LED světla,                                  0 - 255
+// "brightness": 100            integer,        Jas kontrolek v procentech,                               0 - 100
+// "stav": true                 boolean,        Indikuje, zda je třeba odeslat aktualizovaný stav zpět,   true / false
+//
+// JSON payload for sending
+// "on": true                   boolean,        Určuje, zda je zařízení zapnuto nebo vypnuto
+// "ip": "192.168.1.1"          string,         IP adresa zařízení
+// "host": "ESP_HOST"           string,         Hostname zařízení
+// "signal": -60                integer,        Síla signálu WiFi, RSSI v dBm
+// "brightArd": 128             integer,        Hodnota jasu LED světla, závisí na implementaci
+// "brightness": 100            integer,        Jas kontrolek v procentech (0-100)
+// "spectrumRGB": [255, 0, 0]   integer array,  Pole tří hodnot, které reprezentují barvy v RGB spektru (0 - 255)
+// "temp": 21.2                 float,          Naměřená teplota ve stupních Celsia
+// "hum": 54.6                  float,          Naměřená relativní vlhkost v procentech
+// "JSONsize": 123              integer,        Velikost JSON dokumentu
+//
+//
+//
 // uložení některých dat do eprom (kalibrace dht, prodleva odesílání dat,nastavení hlasitosti a.t.d.)
 // Přidat mikrotlačítko reset
 // Průměrovat více měření mezi odesíláním
@@ -114,10 +136,10 @@ const int PwrRed = 4;             // Ledka power (red)   / Světlo 1
 const int PwrGreen = 6;           // Ledka power (green) / Světlo 2
 const int PwrBlue = 8;            // Ledka power (blue)  / Světlo 3
 
-const int ClapThreshold = 900;    // Nastavitelná hladina detekce tlesknutí
-const int CekejOdeslat = 16000;   // Prodleva mezi odesláním naměřených hodnot
-const int CekejMereniDHT = 6400;  // Prodleva mezi měřením DHT
-const int CekejDetectClap = 50;   // Prodleva mezi detekcí tlesknutí
+int ClapThreshold = 900;    // Nastavitelná hladina detekce tlesknutí
+int CekejOdeslat = 16000;   // Prodleva mezi odesláním naměřených hodnot
+int CekejMereniDHT = 6400;  // Prodleva mezi měřením DHT
+int CekejDetectClap = 50;   // Prodleva mezi detekcí tlesknutí
 long LastMsg = 0;
 int Value = 0;
 char SvetloChr[50];
@@ -347,30 +369,81 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
   str[i] = 0;  // Null termination
   StaticJsonDocument<256> doc;
-  deserializeJson(doc, payload);
+  DeserializationError error = deserializeJson(doc, payload);
+  if (error) {
+    Serial.print("Deserialization failed: ");
+    Serial.println(error.c_str());
+    return;
+  }
+
+  if (doc["settings"] != nullptr) {
+    callbackSettings(doc);
+  } else {
+    callbackDevice(doc);
+  }
+}
+
+void callbackSettings(JsonDocument& doc) {
+  const char* settingAction = doc["settings"];
+  if (strcmp(settingAction, "set") == 0) {
+    if (doc["ClapThreshold"] != nullptr) {
+      ClapThreshold = doc["ClapThreshold"];
+    }
+    if (doc["CekejOdeslat"] != nullptr) {
+      CekejOdeslat = doc["CekejOdeslat"];
+    }
+    if (doc["CekejMereniDHT"] != nullptr) {
+      CekejMereniDHT = doc["CekejMereniDHT"];
+    }
+    if (doc["CekejDetectClap"] != nullptr) {
+      CekejDetectClap = doc["CekejDetectClap"];
+    }
+    if (doc["KalibrT"] != nullptr) {
+      KalibrT = doc["KalibrT"];
+    }
+    if (doc["KalibrV"] != nullptr) {
+      KalibrV = doc["KalibrV"];
+    }
+  } else if (strcmp(settingAction, "get") == 0) {
+    StaticJsonDocument<256> responseDoc;
+    responseDoc["ClapThreshold"] = ClapThreshold;
+    responseDoc["CekejOdeslat"] = CekejOdeslat;
+    responseDoc["CekejMereniDHT"] = CekejMereniDHT;
+    responseDoc["CekejDetectClap"] = CekejDetectClap;
+    responseDoc["KalibrT"] = KalibrT;
+    responseDoc["KalibrV"] = KalibrV;
+
+    char responseOut[256];
+    serializeJson(responseDoc, responseOut);
+    client.publish(SvetloChr, responseOut);  // Předpokládáme, že existuje MQTT klient
+    return;
+  }
+}
+
+void callbackDevice(JsonDocument& doc){
   if (doc["on"] != nullptr) {
-    Zap = doc["on"];
-  }
-  if (doc["spectrumRGB"][0] != nullptr) {
-    Red = doc["spectrumRGB"][0];
-  }
-  if (doc["spectrumRGB"][1] != nullptr) {
-    Green = doc["spectrumRGB"][1];
-  }
-  if (doc["spectrumRGB"][2] != nullptr) {
-    Blue = doc["spectrumRGB"][2];
-  }
-  if (doc["brightArd"] != nullptr) {
-    LedL = doc["brightArd"];
-  }
-  if (doc["brightness"] != nullptr) {
-    Bright = doc["brightness"];
-    Bright = round(Bright * 2.54);
-  }
-  bool Stav;
-  if (doc["stav"] != nullptr) {
-    Poslat();
-  }
+      Zap = doc["on"];
+    }
+    if (doc["spectrumRGB"][0] != nullptr) {
+      Red = doc["spectrumRGB"][0];
+    }
+    if (doc["spectrumRGB"][1] != nullptr) {
+      Green = doc["spectrumRGB"][1];
+    }
+    if (doc["spectrumRGB"][2] != nullptr) {
+      Blue = doc["spectrumRGB"][2];
+    }
+    if (doc["brightArd"] != nullptr) {
+      LedL = doc["brightArd"];
+    }
+    if (doc["brightness"] != nullptr) {
+      Bright = doc["brightness"];
+      Bright = round(Bright * 2.54);
+    }
+    bool Stav;
+    if (doc["stav"] != nullptr) {
+      Poslat();
+    }
 }
 
 void reconnect() {
