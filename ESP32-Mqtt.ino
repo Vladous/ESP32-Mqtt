@@ -19,7 +19,7 @@
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 // 
 //
-// ESP 32 Wroom mini S2
+// ESP 32 Wroom mini S2 - Deneyap Mini
 // Mikrofon (KY-038) VCC → 3.3V , GNG → GND , A0 → GPIO34
 //
 //
@@ -65,8 +65,8 @@
 //
 //
 // JSON callback
-// "on": true                   boolean,        Určuje, zda je zařízení zapnuto nebo vypnuto,             true / false
-// "spectrumRGB": [255, 0, 0]   integer array,  Pole tří hodnot, které reprezentují barvy v RGB spektru,  0 - 255
+// "on": true                   boolean,        Určuje, zda se má zařízení zapnout nebo vypnout,          true / false
+// "spectrumRGB": [255, 0, 0]   integer array,  Pole tří hodnot, které nastaví barvy v RGB spektru,       0 - 255
 // "brightArd": 128             integer,        Hodnota jasu LED světla,                                  0 - 255
 // "brightness": 100            integer,        Jas kontrolek v procentech,                               0 - 100
 // "stav": true                 boolean,        Indikuje, zda je třeba odeslat aktualizovaný stav zpět,   true / false
@@ -99,7 +99,7 @@
 #include <Preferences.h>          // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
 
 #define DHTTYPE DHT11             // Typ DHT sezoru teploty a vlhkosti
-#define PREF_NAMESPACE "mqtt-app"
+#define PREF_NAMESPACE "mqtt-app" // Jmenný prostor EEPROM
 uint8_t DHTPin = 3;               // Nastavení datového pinu DHT
 DHT dht(DHTPin, DHTTYPE);         // Inicializace DHT senzoru
 
@@ -136,18 +136,18 @@ const int PwrRed = 4;             // Ledka power (red)   / Světlo 1
 const int PwrGreen = 6;           // Ledka power (green) / Světlo 2
 const int PwrBlue = 8;            // Ledka power (blue)  / Světlo 3
 
-int ClapThreshold = 900;    // Nastavitelná hladina detekce tlesknutí
-int CekejOdeslat = 16000;   // Prodleva mezi odesláním naměřených hodnot
-int CekejMereniDHT = 6400;  // Prodleva mezi měřením DHT
-int CekejDetectClap = 50;   // Prodleva mezi detekcí tlesknutí
+int ClapThreshold = 900;          // Nastavitelná hladina detekce tlesknutí
+int CekejOdeslat = 16000;         // Prodleva mezi odesláním naměřených hodnot
+int CekejMereniDHT = 6400;        // Prodleva mezi měřením DHT
+int CekejDetectClap = 50;         // Prodleva mezi detekcí tlesknutí
 long LastMsg = 0;
 int Value = 0;
 char SvetloChr[50];
 bool Tlac;
 bool Rep;
 String Zap_str;
-int OZap;  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
-int Zap;   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+int OZap;                         // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+int Zap;                          // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
 float Teplota;
 float Vlhkost;
 char Pwr[50];
@@ -166,16 +166,18 @@ const unsigned long doubleClapWindow = 500;
 int TimerOdeslat, TimerMereni;
 
 void setup() {
-  pinMode(Sw, INPUT_PULLUP);   // Tlačítko
-  pinMode(PwrSw, OUTPUT);      // Kontrolka (zelená) zapnutí/vypnutí led/relé
-  pinMode(LedWi, OUTPUT);      // Kontrolka (modrá) připojení k WiFi a MQTT
-  pinMode(Re, OUTPUT);         // Pin relé
-  pinMode(LedPWR, OUTPUT);     // Ledka power
-  pinMode(PwrRed, OUTPUT);     // Ledka power (red)
-  pinMode(PwrGreen, OUTPUT);   // Ledka power (green)
-  pinMode(PwrBlue, OUTPUT);    // Ledka power (blue)
-  pinMode(ClapSensor, INPUT);  // Mikrofon
-  analogWrite(LedPWR, LedL);   // Kontrolka (červená) připojení ke zdroji
+  pinMode(Sw, INPUT_PULLUP);      // PullUp výstup nastavení pinu pro Tlačítko
+  pinMode(LedPWR, OUTPUT);        // Výstup nastavení pinu pro kontrolku led (červená) power
+  pinMode(LedWi, OUTPUT);         // Výstup nastavení pinu pro kontrolku led (modrá)   připojení k WiFi a MQTT
+  pinMode(PwrSw, OUTPUT);         // Výstup nastavení pinu pro kontrolku led (zelená)  zapnutí/vypnutí led/relé
+  pinMode(Re, OUTPUT);            // Výstup nastavení pinu pro relé
+  pinMode(PwrRed, OUTPUT);        // Výstup pro nastavení pinu světla led (red   / white)
+  pinMode(PwrGreen, OUTPUT);      // Výstup pro nastavení pinu světla led (green / white)
+  pinMode(PwrBlue, OUTPUT);       // Výstup pro nastavení pinu světla led (blue  / white)
+  pinMode(ClapSensor, INPUT);     // Vstup pro nastavení pinu Mikrofon
+  pinMode(AmpPin,INPUT);          // Vstup pro nastavení pinu Ampermetr
+
+  analogWrite(LedPWR, LedL);      // Zapnutí kontrolky (červená) připojení ke zdroji
   Serial.begin(115200);
   delay(1500);
   if (Temp) {
