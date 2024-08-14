@@ -515,28 +515,53 @@ void measureAmp() {  // Měření hodnoty z ampermetru
 }
 
 void connectToNetwork() {
-  int reconnectAttempts = 0;
-  while (!client.connected()) {
-    while (WiFi.status() != WL_CONNECTED) {
+int n = WiFi.scanNetworks();
+  int bestNetworkIndex = -1;
+  int bestRSSI = -9999;           // Nízká výchozí hodnota pro porovnání
+
+  for (int i = 0; i < n; i++) {
+    if (WiFi.SSID(i) == ssid) {   // Hledání sítě s požadovaným SSID
+      int rssi = WiFi.RSSI(i);
+      if (rssi > bestRSSI) {      // Pokud je signál silnější, ulož index a RSSI
+        bestNetworkIndex = i;
+        bestRSSI = rssi;
+      }
+    }
+  }
+
+  if (bestNetworkIndex != -1) {   // Pokud byla nalezena vhodná síť
+    WiFi.begin(WiFi.SSID(bestNetworkIndex).c_str(), password);
+
+    int timeout = 10000;          // 10 sekund timeout
+    unsigned long startAttemptTime = millis();
+
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
       analogWrite(LedWi, HIGH);
       delay(50);
       analogWrite(LedWi, LOW);
       delay(50);
     }
-    Serial.print("Pokus o pripojeni MQTT ...");
-    if (client.connect(WIFI_HOSTNAME)) {
-      Serial.println("pripojeno");
+
+    if (WiFi.status() == WL_CONNECTED) {
       analogWrite(LedWi, LedL);
-      client.subscribe(SvetloChr);
-      IsConnected = true;
+
+      while (!client.connected()) {
+        if (client.connect(WIFI_HOSTNAME)) {
+          analogWrite(LedWi, LedL);
+          client.subscribe(SvetloChr);
+          IsConnected = true;
+          return;                 // MQTT připojeno, ukončit funkci
+        } else {
+          analogWrite(LedWi, LedL);
+          delay(2500);
+          analogWrite(LedWi, 0);
+          delay(2500);
+        }
+      }
     } else {
-      analogWrite(LedWi, LedL);
-      Serial.print("chyba, rc=");
-      Serial.print(client.state());
-      Serial.println(" opakuji znovu za 5 sekund");
-      delay(2500);
-      analogWrite(LedWi, 0);
-      delay(2500);
+      IsConnected = false;
     }
+  } else {
+    IsConnected = false;
   }
 }
