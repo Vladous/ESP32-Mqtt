@@ -117,6 +117,8 @@ const bool Temp = true;           // !! CHANGE !!  Použití DHT sezoru měřen�
 const int Stisk = 7;              // !! CHANGE !!  Použití tlačítka                   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 / RGB - 4 , Relé - 16
 const bool AmpMeter = false;      // !! CHANGE !!  Zapnutí měření odběru
 
+char ssid[32];                    // Proměnná pro SSID
+char password[32];                // Proměnná pro heslo
 // Mqtt proměnné nastavení
 char mqtt_server[40];             // MQTT IP adress
 char mqtt_port[6] = "1883";       // MQTT port
@@ -211,6 +213,8 @@ void setup() {
   String apName = String(WIFI_HOSTNAME) + "_AP";
   if (wifiManager.autoConnect(apName.c_str())) {
     // Připojení proběhlo úspěšně, teď uložíme hodnoty do proměnných
+    strcpy(ssid, WiFi.SSID().c_str());
+    strcpy(password, WiFi.psk().c_str());
     strcpy(mqtt_server, custom_mqtt_server.getValue());
     strcpy(mqtt_port, custom_mqtt_port.getValue());
     //strcpy(mqtt_username, custom_mqtt_username.getValue());
