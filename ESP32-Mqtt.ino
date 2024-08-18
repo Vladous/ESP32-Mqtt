@@ -264,6 +264,10 @@ void setup() {
     strlcpy(mqtt_server, "192.168.10.6", sizeof(mqtt_server));  // Pokud se nenačte z EEPROM nastaví default
     Serial.println("Chyba načtení MQTT serveru z EEPROM");
   }
+  if (strcmp(mqtt_port, "") == 0) {
+    strlcpy(mqtt_port, "1880", sizeof(mqtt_port));              // Pokud se nenačte z EEPROM, nastaví defaultní hodnotu
+    Serial.println("Chyba načtení MQTT portu z EEPROM");
+  }
   Serial.print("MQTT server: ");
   Serial.println(mqtt_server);
   Serial.print("MQTT port: ");
