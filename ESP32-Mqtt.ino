@@ -265,7 +265,7 @@ void setup() {
     Serial.println("Chyba načtení MQTT serveru z EEPROM");
   }
   if (strcmp(mqtt_port, "") == 0) {
-    strlcpy(mqtt_port, "1880", sizeof(mqtt_port));              // Pokud se nenačte z EEPROM, nastaví defaultní hodnotu
+    strlcpy(mqtt_port, "1883", sizeof(mqtt_port));  // Pokud se nenačte z EEPROM, nastaví defaultní hodnotu
     Serial.println("Chyba načtení MQTT portu z EEPROM");
   }
   Serial.print("MQTT server: ");
@@ -489,157 +489,156 @@ void callbackSettings(JsonDocument& doc) {
     }
   }
 }
-  void callbackDevice(JsonDocument & doc) {
-    if (doc["on"] != nullptr) {
-      Zap = doc["on"];
-    }
-    if (doc["spectrumRGB"][0] != nullptr) {
-      Red = doc["spectrumRGB"][0];
-    }
-    if (doc["spectrumRGB"][1] != nullptr) {
-      Green = doc["spectrumRGB"][1];
-    }
-    if (doc["spectrumRGB"][2] != nullptr) {
-      Blue = doc["spectrumRGB"][2];
-    }
-    if (doc["brightArd"] != nullptr) {
-      LedL = doc["brightArd"];
-    }
-    if (doc["brightness"] != nullptr) {
-      Bright = doc["brightness"];
-      Bright = round(Bright * 2.54);
-    }
-    bool Stav;
-    if (doc["stav"] != nullptr) {
-      Poslat();
-    }
+
+void callbackDevice(JsonDocument& doc) {
+  if (doc["on"] != nullptr) {
+    Zap = doc["on"];
   }
-
-  void reconnect() {
-    if (!client.connected()) {
-      IsConnected = false;
-    }
+  if (doc["spectrumRGB"][0] != nullptr) {
+    Red = doc["spectrumRGB"][0];
   }
-
-  void Poslat() {
-    DynamicJsonDocument doc(256);
-    doc["on"] = Zap;
-    doc["ip"] = WiFi.localIP().toString();
-    doc["host"] = WIFI_HOSTNAME;
-    doc["signal"] = WiFi.RSSI();
-    doc["brightArd"] = LedL;
-
-    // Přidání kalibračních hodnot a časovačů
-    doc["KalibrT"] = KalibrT;
-    doc["KalibrV"] = KalibrV;
-    doc["ClapThreshold"] = ClapThreshold;
-    doc["CekejOdeslat"] = CekejOdeslat;
-    doc["CekejMereniDHT"] = CekejMereniDHT;
-    doc["CekejDetectClap"] = CekejDetectClap;
-
-    if (LedType == 1) {
-      doc["brightness"] = round(Bright / 2.54);
-    } else if (LedType == 2) {
-      JsonArray data = doc.createNestedArray("spectrumRGB");
-      data.add(Red);
-      data.add(Green);
-      data.add(Blue);
-    }
-    if (Temp) {
-      senzorTemp();
-      delay(50);
-      doc["temp"] = Teplota;
-      doc["hum"] = Vlhkost;
-
-      Serial.print("Teplota je ");
-      Serial.print(Teplota);
-      Serial.print(" °C a vlhkost je ");
-      Serial.print(Vlhkost);
-      Serial.println(" %RH");
-    }
-    char out[256];
-    int jsonSize = serializeJson(doc, out);
-    // Přidejte velikost JSON do dokumentu
-    doc["JSONsize"] = jsonSize;
-    // Serialize znovu s délkou JSON
-    serializeJson(doc, out);
-    client.publish(SvetloChr, out);
+  if (doc["spectrumRGB"][1] != nullptr) {
+    Green = doc["spectrumRGB"][1];
   }
-
-  void Push() {
-    Tlac = digitalRead(Sw);  // Tlačítko
-    if (!Tlac) {
-      if (!Rep) {
-        if (Zap == 0) {
-          Zap = Stisk;
-        } else {
-          Zap = 0;
-        }
-        Rep = true;
-      }
-    } else {
-      Rep = false;
-    }
+  if (doc["spectrumRGB"][2] != nullptr) {
+    Blue = doc["spectrumRGB"][2];
   }
-
-  void senzorTemp() {
-    Teplota = (Teplota + dht.readTemperature() / KalibrT) / 2;
-    delay(100);
-    Vlhkost = (Vlhkost + dht.readHumidity() / KalibrV) / 2;
-    delay(100);
+  if (doc["brightArd"] != nullptr) {
+    LedL = doc["brightArd"];
   }
-
-  void measureAmp() {  // Měření hodnoty z ampermetru
+  if (doc["brightness"] != nullptr) {
+    Bright = doc["brightness"];
+    Bright = round(Bright * 2.54);
   }
+  bool Stav;
+  if (doc["stav"] != nullptr) {
+    Poslat();
+  }
+}
 
-  void connectToNetwork() {
-    int n = WiFi.scanNetworks();
-    int bestNetworkIndex = -1;
-    int bestRSSI = -9999;  // Nízká výchozí hodnota pro porovnání
+void reconnect() {
+  if (!client.connected()) {
+    IsConnected = false;
+  }
+}
 
-    for (int i = 0; i < n; i++) {
-      if (WiFi.SSID(i) == ssid) {  // Hledání sítě s požadovaným SSID
-        int rssi = WiFi.RSSI(i);
-        if (rssi > bestRSSI) {  // Pokud je signál silnější, ulož index a RSSI
-          bestNetworkIndex = i;
-          bestRSSI = rssi;
-        }
-      }
-    }
+void Poslat() {
+  DynamicJsonDocument doc(256);
+  doc["on"] = Zap;
+  doc["ip"] = WiFi.localIP().toString();
+  doc["host"] = WIFI_HOSTNAME;
+  doc["signal"] = WiFi.RSSI();
+  doc["brightArd"] = LedL;
 
-    if (bestNetworkIndex != -1) {  // Pokud byla nalezena vhodná síť
-      WiFi.begin(WiFi.SSID(bestNetworkIndex).c_str(), password);
+  // Přidání kalibračních hodnot a časovačů
+  doc["KalibrT"] = KalibrT;
+  doc["KalibrV"] = KalibrV;
+  doc["ClapThreshold"] = ClapThreshold;
+  doc["CekejOdeslat"] = CekejOdeslat;
+  doc["CekejMereniDHT"] = CekejMereniDHT;
+  doc["CekejDetectClap"] = CekejDetectClap;
 
-      int timeout = 10000;  // 10 sekund timeout
-      unsigned long startAttemptTime = millis();
+  if (LedType == 1) {
+    doc["brightness"] = round(Bright / 2.54);
+  } else if (LedType == 2) {
+    JsonArray data = doc.createNestedArray("spectrumRGB");
+    data.add(Red);
+    data.add(Green);
+    data.add(Blue);
+  }
+  if (Temp) {
+    senzorTemp();
+    delay(50);
+    doc["temp"] = Teplota;
+    doc["hum"] = Vlhkost;
 
-      while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
-        analogWrite(LedWi, HIGH);
-        delay(50);
-        analogWrite(LedWi, LOW);
-        delay(50);
-      }
+    Serial.print("Teplota je ");
+    Serial.print(Teplota);
+    Serial.print(" °C a vlhkost je ");
+    Serial.print(Vlhkost);
+    Serial.println(" %RH");
+  }
+  char out[256];
+  int jsonSize = serializeJson(doc, out);
+  // Přidejte velikost JSON do dokumentu
+  doc["JSONsize"] = jsonSize;
+  // Serialize znovu s délkou JSON
+  serializeJson(doc, out);
+  client.publish(SvetloChr, out);
+}
 
-      if (WiFi.status() == WL_CONNECTED) {
-        analogWrite(LedWi, LedL);
-
-        while (!client.connected()) {
-          if (client.connect(WIFI_HOSTNAME)) {
-            analogWrite(LedWi, LedL);
-            client.subscribe(SvetloChr);
-            IsConnected = true;
-            return;  // MQTT připojeno, ukončit funkci
-          } else {
-            analogWrite(LedWi, LedL);
-            delay(2500);
-            analogWrite(LedWi, 0);
-            delay(2500);
-          }
-        }
+void Push() {
+  Tlac = digitalRead(Sw);  // Tlačítko
+  if (!Tlac) {
+    if (!Rep) {
+      if (Zap == 0) {
+        Zap = Stisk;
       } else {
-        IsConnected = false;
+        Zap = 0;
+      }
+      Rep = true;
+    }
+  } else {
+    Rep = false;
+  }
+}
+
+void senzorTemp() {
+  Teplota = (Teplota + dht.readTemperature() / KalibrT) / 2;
+  delay(100);
+  Vlhkost = (Vlhkost + dht.readHumidity() / KalibrV) / 2;
+  delay(100);
+}
+
+void measureAmp() {  // Měření hodnoty z ampermetru
+}
+
+void connectToNetwork() {
+  int n = WiFi.scanNetworks();
+  int bestNetworkIndex = -1;
+  int bestRSSI = -9999;  // Nízká výchozí hodnota pro porovnání
+  for (int i = 0; i < n; i++) {
+    if (WiFi.SSID(i) == ssid) {  // Hledání sítě s požadovaným SSID
+      int rssi = WiFi.RSSI(i);
+      if (rssi > bestRSSI) {  // Pokud je signál silnější, ulož index a RSSI
+        bestNetworkIndex = i;
+        bestRSSI = rssi;
+      }
+    }
+  }
+  if (bestNetworkIndex != -1) {  // Pokud byla nalezena vhodná síť
+    WiFi.begin(WiFi.SSID(bestNetworkIndex).c_str(), password);
+
+    int timeout = 10000;  // 10 sekund timeout
+    unsigned long startAttemptTime = millis();
+
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
+      analogWrite(LedWi, HIGH);
+      delay(50);
+      analogWrite(LedWi, LOW);
+      delay(50);
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+      analogWrite(LedWi, LedL);
+
+      while (!client.connected()) {
+        if (client.connect(WIFI_HOSTNAME)) {
+          analogWrite(LedWi, LedL);
+          client.subscribe(SvetloChr);
+          IsConnected = true;
+          return;  // MQTT připojeno, ukončit funkci
+        } else {
+          analogWrite(LedWi, LedL);
+          delay(2500);
+          analogWrite(LedWi, 0);
+          delay(2500);
+        }
       }
     } else {
       IsConnected = false;
     }
+  } else {
+    IsConnected = false;
   }
+}
