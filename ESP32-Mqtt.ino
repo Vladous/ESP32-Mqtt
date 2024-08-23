@@ -97,6 +97,7 @@
 #include <ArduinoJson.h>   // https://github.com/bblanchon/ArduinoJson
 #include <DHT.h>           // https://github.com/adafruit/DHT-sensor-library
 #include <Preferences.h>   // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
+#include <Ticker.h>
 
 #define DHTTYPE DHT11              // Typ DHT sezoru teploty a vlhkosti
 #define PREF_NAMESPACE "mqtt-app"  // Jmenný prostor EEPROM
@@ -139,8 +140,8 @@ const int PwrGreen = 6;  // Ledka power (green) / Světlo 2
 const int PwrBlue = 8;   // Ledka power (blue)  / Světlo 3
 
 int ClapThreshold = 900;    // Nastavitelná hladina detekce tlesknutí
-int CekejOdeslat = 16000;   // Prodleva mezi odesláním naměřených hodnot
-int CekejMereniDHT = 6400;  // Prodleva mezi měřením DHT
+float CekejOdeslat = 20.0f;      // Prodleva mezi odesláním naměřených hodnot
+float CekejMereni = 4.0f;        // Prodleva mezi měřením DHT
 int CekejDetectClap = 50;   // Prodleva mezi detekcí tlesknutí
 long LastMsg = 0;
 int Value = 0;
@@ -165,7 +166,7 @@ bool IsConnected = false;
 unsigned long lastClapTime = 0;
 bool firstClapDetected = false;
 const unsigned long doubleClapWindow = 500;
-int TimerOdeslat, TimerMereni;
+Ticker TimerOdeslat,TimerMereni;
 
 void setup() {
   pinMode(Sw, INPUT_PULLUP);   // PullUp výstup nastavení pinu pro Tlačítko
@@ -204,14 +205,14 @@ void setup() {
   ClapThreshold = preferences.getInt("ClapThreshold", 900);
 
   if (!preferences.isKey("CekejOdeslat")) {
-    preferences.putInt("CekejOdeslat", 16000);
+    preferences.putFloat("CekejOdeslat", 20);
   }
-  CekejOdeslat = preferences.getInt("CekejOdeslat", 16000);
+  CekejOdeslat = preferences.getFloat("CekejOdeslat", 20);
 
-  if (!preferences.isKey("CekejMereniDHT")) {
-    preferences.putInt("CekejMereniDHT", 6400);
+  if (!preferences.isKey("CekejMereni")) {
+    preferences.putFloat("CekejMereni", 4);
   }
-  CekejMereniDHT = preferences.getInt("CekejMereniDHT", 6400);
+  CekejMereni = preferences.getFloat("CekejMereni", 4);
 
   if (!preferences.isKey("CekejDetectClap")) {
     preferences.putInt("CekejDetectClap", 50);
@@ -280,6 +281,10 @@ void setup() {
   connectToNetwork();  // Volání nové funkce pro připojení k nastavené WiFi a MQTT
   Serial.println("Moje IP adresa je:");
   Serial.println(WiFi.localIP());
+  if (Temp or AmpMeter) {  // Pokud je zapnuto měřění teploty, nebo ampermetr aktivuj timer
+    TimerMereni.attach(CekejMereni, tempAndAmpMeter);
+  }
+  TimerOdeslat.attach(CekejOdeslat, Poslat);
 }
 
 void detectClap() {
@@ -341,10 +346,6 @@ void loop() {
 
   aktivaceSvetel();
 
-  if (Temp or AmpMeter) {  // Pokud je zapnuto měřění teploty, nebo ampermetr aktivuj timer
-    tempAndAmpMeter();
-  }
-
   // Úprava nstavení jasu kontrolek
   analogWrite(LedPWR, LedL);
   analogWrite(LedWi, LedL);
@@ -386,20 +387,11 @@ void aktivaceSvetel() {
 }
 
 void tempAndAmpMeter() {
-  TimerOdeslat = TimerOdeslat + 1;
-  TimerMereni = TimerMereni + 1;
-  if (TimerMereni >= CekejMereniDHT) {
-    TimerMereni = 0;  // Vynulování timeru
-    if (Temp) {
-      senzorTemp();  // Načtení hodnoty ze seznoru DHT
-    }
-    if (AmpMeter) {
-      measureAmp();  // Načtení hodnoty Ampermetru
-    }
+  if (Temp) {
+    senzorTemp();  // Načtení hodnoty ze seznoru DHT
   }
-  if (TimerOdeslat >= CekejOdeslat) {
-    TimerOdeslat = 0;  // Vynulování timeru
-    Poslat();
+  if (AmpMeter) {
+    measureAmp();  // Načtení hodnoty Ampermetru
   }
 }
 
@@ -434,8 +426,8 @@ void callbackSettings(JsonDocument& doc) {
     if (doc["CekejOdeslat"] != nullptr) {
       CekejOdeslat = doc["CekejOdeslat"];
     }
-    if (doc["CekejMereniDHT"] != nullptr) {
-      CekejMereniDHT = doc["CekejMereniDHT"];
+    if (doc["CekejMereni"] != nullptr) {
+      CekejMereni = doc["CekejMereni"];
     }
     if (doc["CekejDetectClap"] != nullptr) {
       CekejDetectClap = doc["CekejDetectClap"];
@@ -457,9 +449,9 @@ void callbackSettings(JsonDocument& doc) {
         CekejOdeslat = doc["CekejOdeslat"].as<int>();
         preferences.putInt("CekejOdeslat", CekejOdeslat);
       }
-      if (doc["CekejMereniDHT"] != nullptr) {
-        CekejMereniDHT = doc["CekejMereniDHT"].as<int>();
-        preferences.putInt("CekejMereniDHT", CekejMereniDHT);
+      if (doc["CekejMereni"] != nullptr) {
+        CekejMereni = doc["CekejMereni"].as<int>();
+        preferences.putInt("CekejMereni", CekejMereni);
       }
       if (doc["CekejDetectClap"] != nullptr) {
         CekejDetectClap = doc["CekejDetectClap"].as<int>();
@@ -477,7 +469,7 @@ void callbackSettings(JsonDocument& doc) {
       StaticJsonDocument<256> responseDoc;
       responseDoc["ClapThreshold"] = ClapThreshold;
       responseDoc["CekejOdeslat"] = CekejOdeslat;
-      responseDoc["CekejMereniDHT"] = CekejMereniDHT;
+      responseDoc["CekejMereni"] = CekejMereni;
       responseDoc["CekejDetectClap"] = CekejDetectClap;
       responseDoc["KalibrT"] = KalibrT;
       responseDoc["KalibrV"] = KalibrV;
@@ -535,7 +527,7 @@ void Poslat() {
   doc["KalibrV"] = KalibrV;
   doc["ClapThreshold"] = ClapThreshold;
   doc["CekejOdeslat"] = CekejOdeslat;
-  doc["CekejMereniDHT"] = CekejMereniDHT;
+  doc["CekejMereni"] = CekejMereni;
   doc["CekejDetectClap"] = CekejDetectClap;
 
   if (LedType == 1) {
