@@ -307,7 +307,7 @@ void detectClap() {
         lastClapTime = currentTime;
       }
     }
-    delay(CekejDetectClap);  // Zpoždění pro zabránění falešných detekcí
+    // delay(CekejDetectClap);  // Zpoždění pro zabránění falešných detekcí
   } else if (firstClapDetected && (currentTime - lastClapTime > doubleClapWindow)) {
     // Vypršelo časové okno pro druhé tlesknutí
     firstClapDetected = false;
@@ -332,7 +332,7 @@ void loop() {
 
   if (OZap != Zap) {
     Poslat();
-    delay(300);
+    delay(30);
   }
   if (Relay) {
     if (Zap & 16) {
@@ -349,6 +349,8 @@ void loop() {
   // Úprava nstavení jasu kontrolek
   analogWrite(LedPWR, LedL);
   analogWrite(LedWi, LedL);
+  //Serial.println(millis()/60/1000);
+  delay(10);
 }
 
 void ledKontolaZapnuti() {
@@ -539,8 +541,8 @@ void Poslat() {
     data.add(Blue);
   }
   if (Temp) {
-    senzorTemp();
-    delay(50);
+    //senzorTemp();
+    //delay(50);
     doc["temp"] = Teplota;
     doc["hum"] = Vlhkost;
 
@@ -577,9 +579,9 @@ void Push() {
 
 void senzorTemp() {
   Teplota = (Teplota + dht.readTemperature() / KalibrT) / 2;
-  delay(100);
+  delay(10);
   Vlhkost = (Vlhkost + dht.readHumidity() / KalibrV) / 2;
-  delay(100);
+  delay(10);
 }
 
 void measureAmp() {  // Měření hodnoty z ampermetru
