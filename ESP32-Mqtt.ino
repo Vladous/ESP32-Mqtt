@@ -98,6 +98,7 @@
 #include <DHT.h>           // https://github.com/adafruit/DHT-sensor-library
 #include <Preferences.h>   // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
 #include <Ticker.h>
+#include <Arduino.h>
 
 #define DHTTYPE DHT11              // Typ DHT sezoru teploty a vlhkosti
 #define PREF_NAMESPACE "mqtt-app"  // Jmenný prostor EEPROM
@@ -146,11 +147,11 @@ int CekejDetectClap = 50;   // Prodleva mezi detekcí tlesknutí
 long LastMsg = 0;
 int Value = 0;
 char SvetloChr[50];
-bool Tlac;
-bool Rep;
+// bool Tlac;
 String Zap_str;
-int OZap;  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
-int Zap;   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+volatile bool Rep;
+volatile int OZap;  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+volatile int Zap;   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
 float Teplota;
 float Vlhkost;
 char Pwr[50];
@@ -168,6 +169,21 @@ bool firstClapDetected = false;
 const unsigned long doubleClapWindow = 500;
 Ticker TimerOdeslat,TimerMereni;
 
+void IRAM_ATTR pushInterrupt() {
+  static unsigned long lastInterruptTime = 0;
+  unsigned long interruptTime = millis();
+  // Debouncing: ignorovat přerušení, pokud k němu došlo příliš brzy po předchozím
+  if (interruptTime - lastInterruptTime > 200) {
+    if (Zap == 0) {
+      Zap = Stisk;  // Nastavit novou hodnotu
+    } else {
+      Zap = 0;      // Resetovat hodnotu
+    }
+    Rep = !Rep;     // Přepnout stav tlačítka
+  }
+  lastInterruptTime = interruptTime;
+}
+
 void setup() {
   pinMode(Sw, INPUT_PULLUP);   // PullUp výstup nastavení pinu pro Tlačítko
   pinMode(LedPWR, OUTPUT);     // Výstup nastavení pinu pro kontrolku led (červená) power
@@ -179,7 +195,7 @@ void setup() {
   pinMode(PwrBlue, OUTPUT);    // Výstup pro nastavení pinu světla led (blue  / white)
   pinMode(ClapSensor, INPUT);  // Vstup pro nastavení pinu Mikrofon
   pinMode(AmpPin, INPUT);      // Vstup pro nastavení pinu Ampermetr
-
+  attachInterrupt(digitalPinToInterrupt(Sw), pushInterrupt, FALLING); // Přerušení na spadání hrany
   analogWrite(LedPWR, LedL);  // Zapnutí kontrolky (červená) připojení ke zdroji
   Serial.begin(115200);
   delay(1500);
@@ -319,20 +335,15 @@ void loop() {
   if (!IsConnected) {
     connectToNetwork();
   }
-
+  yield();
   client.loop();
-
+  yield();
   if (Clap) {
     detectClap();
   }
-
-  if (OZap == Zap) {
-    Push();
-  }
-
   if (OZap != Zap) {
+    aktivaceSvetel();
     Poslat();
-    delay(30);
   }
   if (Relay) {
     if (Zap & 16) {
@@ -343,14 +354,10 @@ void loop() {
       ledKontolaZapnuti();
     }
   }
-
-  aktivaceSvetel();
-
   // Úprava nstavení jasu kontrolek
   analogWrite(LedPWR, LedL);
   analogWrite(LedWi, LedL);
-  //Serial.println(millis()/60/1000);
-  delay(10);
+  yield();
 }
 
 void ledKontolaZapnuti() {
@@ -441,7 +448,8 @@ void callbackSettings(JsonDocument& doc) {
       KalibrV = doc["KalibrV"];
     }
   } else if (strcmp(settingAction, "get") == 0) {
-    StaticJsonDocument<256> responseDoc;
+    //StaticJsonDocument<256> responseDoc;
+    DynamicJsonDocument responseDoc(512);
     if (strcmp(settingAction, "set") == 0) {
       if (doc["ClapThreshold"] != nullptr) {
         ClapThreshold = doc["ClapThreshold"].as<int>();
@@ -468,7 +476,8 @@ void callbackSettings(JsonDocument& doc) {
         preferences.putDouble("KalibrV", KalibrV);
       }
     } else if (strcmp(settingAction, "get") == 0) {
-      StaticJsonDocument<256> responseDoc;
+      //StaticJsonDocument<256> responseDoc;
+      DynamicJsonDocument responseDoc(512);
       responseDoc["ClapThreshold"] = ClapThreshold;
       responseDoc["CekejOdeslat"] = CekejOdeslat;
       responseDoc["CekejMereni"] = CekejMereni;
@@ -476,7 +485,7 @@ void callbackSettings(JsonDocument& doc) {
       responseDoc["KalibrT"] = KalibrT;
       responseDoc["KalibrV"] = KalibrV;
 
-      char responseOut[256];
+      char responseOut[512];
       serializeJson(responseDoc, responseOut);
       client.publish(SvetloChr, responseOut);
       return;
@@ -517,7 +526,9 @@ void reconnect() {
 }
 
 void Poslat() {
-  DynamicJsonDocument doc(256);
+  DynamicJsonDocument doc(512);
+  //DynamicJsonDocument doc(256);
+  yield();
   doc["on"] = Zap;
   doc["ip"] = WiFi.localIP().toString();
   doc["host"] = WIFI_HOSTNAME;
@@ -531,7 +542,7 @@ void Poslat() {
   doc["CekejOdeslat"] = CekejOdeslat;
   doc["CekejMereni"] = CekejMereni;
   doc["CekejDetectClap"] = CekejDetectClap;
-
+  yield();
   if (LedType == 1) {
     doc["brightness"] = round(Bright / 2.54);
   } else if (LedType == 2) {
@@ -558,24 +569,10 @@ void Poslat() {
   doc["JSONsize"] = jsonSize;
   // Serialize znovu s délkou JSON
   serializeJson(doc, out);
+  yield();
   client.publish(SvetloChr, out);
 }
 
-void Push() {
-  Tlac = digitalRead(Sw);  // Tlačítko
-  if (!Tlac) {
-    if (!Rep) {
-      if (Zap == 0) {
-        Zap = Stisk;
-      } else {
-        Zap = 0;
-      }
-      Rep = true;
-    }
-  } else {
-    Rep = false;
-  }
-}
 
 void senzorTemp() {
   Teplota = (Teplota + dht.readTemperature() / KalibrT) / 2;
