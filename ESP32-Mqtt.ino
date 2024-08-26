@@ -111,7 +111,6 @@ Preferences preferences;
 
 // Rozdělit světla a relé
 const int LedType = 3;              // !! CHANGE !!  Typ led světel   ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8 )
-#define WIFI_HOSTNAME "ESP32_12"    // !! CHANGE !!  Název zařízení v síti
 const String Svetlo = "Svetlo_05";  // !! CHANGE !!  Topic název zařízení
 const bool Relay = false;           // !! CHANGE !!  Relé (Zásuvka)
 const bool Clap = false;            // !! CHANGE !!  Použití mikrofonu
@@ -119,6 +118,7 @@ const bool Temp = true;             // !! CHANGE !!  Použití DHT sezoru měře
 const int Stisk = 7;                // !! CHANGE !!  Použití tlačítka ( Led světlo 1 - 1 , Led světlo 2 - 2 , Led světlo 3 / RGB - 4 , Relé - 16 )
 const bool AmpMeter = false;        // !! CHANGE !!  Zapnutí měření odběru
 
+const char* WIFI_HOSTNAME = Svetlo.c_str();
 char ssid[32];      // Proměnná pro SSID
 char password[32];  // Proměnná pro heslo
 // Mqtt proměnné nastavení
@@ -405,92 +405,68 @@ void tempAndAmpMeter() {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  char str[length + 1];
-  int i = 0;
-  for (i = 0; i < length; i++) {
-    str[i] = (char)payload[i];
-  }
-  str[i] = 0;  // Null termination
-  StaticJsonDocument<256> doc;
-  DeserializationError error = deserializeJson(doc, payload);
+  DynamicJsonDocument doc(512);
+  DeserializationError error = deserializeJson(doc, payload, length);
+
   if (error) {
     Serial.print("Deserialization failed: ");
     Serial.println(error.c_str());
     return;
   }
 
-  if (doc["settings"] != nullptr) {
-    callbackSettings(doc);
+  if (doc.containsKey("settings")) {
+    const char* settingAction = doc["settings"];
+    if (strcmp(settingAction, "set") == 0) {
+      callbackSettingsSet(doc);
+    } else if (strcmp(settingAction, "get") == 0) {
+      callbackSettingsGet();
+    }
   } else {
     callbackDevice(doc);
   }
 }
 
-void callbackSettings(JsonDocument& doc) {
-  const char* settingAction = doc["settings"];
-  if (strcmp(settingAction, "set") == 0) {
-    if (doc["ClapThreshold"] != nullptr) {
-      ClapThreshold = doc["ClapThreshold"];
-    }
-    if (doc["CekejOdeslat"] != nullptr) {
-      CekejOdeslat = doc["CekejOdeslat"];
-    }
-    if (doc["CekejMereni"] != nullptr) {
-      CekejMereni = doc["CekejMereni"];
-    }
-    if (doc["CekejDetectClap"] != nullptr) {
-      CekejDetectClap = doc["CekejDetectClap"];
-    }
-    if (doc["KalibrT"] != nullptr) {
-      KalibrT = doc["KalibrT"];
-    }
-    if (doc["KalibrV"] != nullptr) {
-      KalibrV = doc["KalibrV"];
-    }
-  } else if (strcmp(settingAction, "get") == 0) {
-    //StaticJsonDocument<256> responseDoc;
-    DynamicJsonDocument responseDoc(512);
-    if (strcmp(settingAction, "set") == 0) {
-      if (doc["ClapThreshold"] != nullptr) {
-        ClapThreshold = doc["ClapThreshold"].as<int>();
-        preferences.putInt("ClapThreshold", ClapThreshold);
-      }
-      if (doc["CekejOdeslat"] != nullptr) {
-        CekejOdeslat = doc["CekejOdeslat"].as<int>();
-        preferences.putInt("CekejOdeslat", CekejOdeslat);
-      }
-      if (doc["CekejMereni"] != nullptr) {
-        CekejMereni = doc["CekejMereni"].as<int>();
-        preferences.putInt("CekejMereni", CekejMereni);
-      }
-      if (doc["CekejDetectClap"] != nullptr) {
-        CekejDetectClap = doc["CekejDetectClap"].as<int>();
-        preferences.putInt("CekejDetectClap", CekejDetectClap);
-      }
-      if (doc["KalibrT"] != nullptr) {
-        KalibrT = doc["KalibrT"].as<double>();
-        preferences.putDouble("KalibrT", KalibrT);
-      }
-      if (doc["KalibrV"] != nullptr) {
-        KalibrV = doc["KalibrV"].as<double>();
-        preferences.putDouble("KalibrV", KalibrV);
-      }
-    } else if (strcmp(settingAction, "get") == 0) {
-      //StaticJsonDocument<256> responseDoc;
-      DynamicJsonDocument responseDoc(512);
-      responseDoc["ClapThreshold"] = ClapThreshold;
-      responseDoc["CekejOdeslat"] = CekejOdeslat;
-      responseDoc["CekejMereni"] = CekejMereni;
-      responseDoc["CekejDetectClap"] = CekejDetectClap;
-      responseDoc["KalibrT"] = KalibrT;
-      responseDoc["KalibrV"] = KalibrV;
-
-      char responseOut[512];
-      serializeJson(responseDoc, responseOut);
-      client.publish(SvetloChr, responseOut);
-      return;
-    }
+void callbackSettingsSet(JsonDocument& doc) {
+  preferences.begin(PREF_NAMESPACE, false);
+  if (doc.containsKey("ClapThreshold")) {
+    ClapThreshold = doc["ClapThreshold"].as<int>();
+    preferences.putInt("ClapThreshold", ClapThreshold);
   }
+  if (doc.containsKey("CekejOdeslat")) {
+    CekejOdeslat = doc["CekejOdeslat"].as<int>();
+    preferences.putInt("CekejOdeslat", CekejOdeslat);
+  }
+  if (doc.containsKey("CekejMereni")) {
+    CekejMereni = doc["CekejMereni"].as<int>();
+    preferences.putInt("CekejMereni", CekejMereni);
+  }
+  if (doc.containsKey("CekejDetectClap")) {
+    CekejDetectClap = doc["CekejDetectClap"].as<int>();
+    preferences.putInt("CekejDetectClap", CekejDetectClap);
+  }
+  if (doc.containsKey("KalibrT")) {
+    KalibrT = doc["KalibrT"].as<float>();
+    preferences.putFloat("KalibrT", KalibrT);
+  }
+  if (doc.containsKey("KalibrV")) {
+    KalibrV = doc["KalibrV"].as<float>();
+    preferences.putFloat("KalibrV", KalibrV);
+  }
+  preferences.end();
+}
+
+void callbackSettingsGet() {
+  DynamicJsonDocument responseDoc(512);
+  responseDoc["ClapThreshold"] = ClapThreshold;
+  responseDoc["CekejOdeslat"] = CekejOdeslat;
+  responseDoc["CekejMereni"] = CekejMereni;
+  responseDoc["CekejDetectClap"] = CekejDetectClap;
+  responseDoc["KalibrT"] = KalibrT;
+  responseDoc["KalibrV"] = KalibrV;
+
+  char responseOut[512];
+  serializeJson(responseDoc, responseOut);
+  client.publish(SvetloChr, responseOut);
 }
 
 void callbackDevice(JsonDocument& doc) {
@@ -527,22 +503,20 @@ void reconnect() {
 
 void Poslat() {
   DynamicJsonDocument doc(512);
-  //DynamicJsonDocument doc(256);
   yield();
-  doc["on"] = Zap;
-  doc["ip"] = WiFi.localIP().toString();
-  doc["host"] = WIFI_HOSTNAME;
-  doc["signal"] = WiFi.RSSI();
-  doc["brightArd"] = LedL;
 
-  // Přidání kalibračních hodnot a časovačů
-  doc["KalibrT"] = KalibrT;
-  doc["KalibrV"] = KalibrV;
-  doc["ClapThreshold"] = ClapThreshold;
-  doc["CekejOdeslat"] = CekejOdeslat;
-  doc["CekejMereni"] = CekejMereni;
-  doc["CekejDetectClap"] = CekejDetectClap;
-  yield();
+  // Základní informace o zařízení
+  doc["on"] = Zap;
+  doc["signal"] = WiFi.RSSI();
+
+  // Přidání MAC adresy WiFi hotspotu
+  byte bssid[6];
+  WiFi.BSSID(bssid);
+  char bssidStr[18];
+  sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
+          bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+  doc["bssid"] = bssidStr;
+
   if (LedType == 1) {
     doc["brightness"] = round(Bright / 2.54);
   } else if (LedType == 2) {
@@ -551,28 +525,54 @@ void Poslat() {
     data.add(Green);
     data.add(Blue);
   }
+
   if (Temp) {
-    //senzorTemp();
-    //delay(50);
     doc["temp"] = Teplota;
     doc["hum"] = Vlhkost;
-
-    Serial.print("Teplota je ");
-    Serial.print(Teplota);
-    Serial.print(" °C a vlhkost je ");
-    Serial.print(Vlhkost);
-    Serial.println(" %RH");
   }
+
+  if (AmpMeter) {
+    doc["Amp"] = PwrAmp;
+  }
+
   char out[256];
   int jsonSize = serializeJson(doc, out);
-  // Přidejte velikost JSON do dokumentu
   doc["JSONsize"] = jsonSize;
-  // Serialize znovu s délkou JSON
   serializeJson(doc, out);
   yield();
   client.publish(SvetloChr, out);
 }
 
+void poslatSettings() {
+  DynamicJsonDocument doc(512);
+  yield();
+
+  doc["ip"] = WiFi.localIP().toString();
+  doc["host"] = WIFI_HOSTNAME;
+
+  // Přidání kalibračních hodnot a časovačů
+  doc["CekejOdeslat"] = CekejOdeslat;
+
+  if (Temp || AmpMeter) {
+    doc["CekejMereni"] = CekejMereni;
+    if (Temp) {
+      doc["KalibrT"] = KalibrT;
+      doc["KalibrV"] = KalibrV;
+    }
+  }
+
+  if (Clap) {
+    doc["ClapThreshold"] = ClapThreshold;
+    doc["CekejDetectClap"] = CekejDetectClap;
+  }
+
+  char out[256];
+  int jsonSize = serializeJson(doc, out);
+  doc["JSONsize"] = jsonSize;
+  serializeJson(doc, out);
+  yield();
+  client.publish(SvetloChr, out);
+}
 
 void senzorTemp() {
   Teplota = (Teplota + dht.readTemperature() / KalibrT) / 2;
@@ -582,6 +582,8 @@ void senzorTemp() {
 }
 
 void measureAmp() {  // Měření hodnoty z ampermetru
+  PwrAmp = (PwrAmp + analogRead(AmpPin)) / 2;
+  delay(10);
 }
 
 void connectToNetwork() {
