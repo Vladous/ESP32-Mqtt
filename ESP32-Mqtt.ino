@@ -65,27 +65,45 @@
 //
 //
 // JSON callback
-// "on": true                   boolean,        Určuje, zda se má zařízení zapnout nebo vypnout,          true / false
-// "spectrumRGB": [255, 0, 0]   integer array,  Pole tří hodnot, které nastaví barvy v RGB spektru,       0 - 255
-// "brightArd": 128             integer,        Hodnota jasu LED světla,                                  0 - 255
-// "brightness": 100            integer,        Jas kontrolek v procentech,                               0 - 100
-// "stav": true                 boolean,        Indikuje, zda je třeba odeslat aktualizovaný stav zpět,   true / false
+// -------------
+// "on": true,                      // boolean, Určuje, zda se má zařízení zapnout nebo vypnout, true / false
+// "spectrumRGB": [255, 0, 0],      // integer array, Pole tří hodnot, které nastaví barvy v RGB spektru, 0 - 255
+// "brightArd": 128,                // integer, Hodnota jasu LED světla, 0 - 255
+// "brightness": 100,               // integer, Jas kontrolek v procentech, 0 - 100
+// "stav": true,                    // boolean, Indikuje, zda je třeba odeslat aktualizovaný stav zpět, true / false
+//
+// "settings": "set",               // string, Určuje akci, "set" pro nastavení, "get" pro získání nastavení
+//  "ClapThreshold": 10,            // integer, Prah pro detekci tlesknutí
+//  "CekejOdeslat": 5000,           // integer, Časový interval čekání na odeslání
+//  "CekejMereni": 3000,            // integer, Časový interval čekání na měření
+//  "CekejDetectClap": 2000,        // integer, Časový interval čekání na detekci tlesknutí
+//  "KalibrT": 1.23,                // float, Kalibrace teplotního senzoru
+//  "KalibrV": 0.98                 // float, Kalibrace vlhkostního senzoru
 //
 // JSON payload for sending
-// "on": true                   boolean,        Určuje, zda je zařízení zapnuto nebo vypnuto
-// "ip": "192.168.1.1"          string,         IP adresa zařízení
-// "host": "ESP_HOST"           string,         Hostname zařízení
-// "signal": -60                integer,        Síla signálu WiFi, RSSI v dBm
-// "brightArd": 128             integer,        Hodnota jasu LED světla, závisí na implementaci
-// "brightness": 100            integer,        Jas kontrolek v procentech (0-100)
-// "spectrumRGB": [255, 0, 0]   integer array,  Pole tří hodnot, které reprezentují barvy v RGB spektru (0 - 255)
-// "temp": 21.2                 float,          Naměřená teplota ve stupních Celsia
-// "hum": 54.6                  float,          Naměřená relativní vlhkost v procentech
-// "JSONsize": 123              integer,        Velikost JSON dokumentu
+// ------------------------
+// "on": true,                      // boolean, Určuje, zda je zařízení zapnuto nebo vypnuto
+// "signal": -60,                   // integer, Síla signálu WiFi, RSSI v dBm
+// "bssid": "00:11:22:33:44:55",    // string, MAC adresa WiFi hotspotu
+// "brightness": 100,               // integer, Jas kontrolek v procentech (0-100)
+// "spectrumRGB": [255, 0, 0],      // integer array, Pole tří hodnot, které reprezentují barvy v RGB spektru (0 - 255)
+// "temp": 21.2,                    // float, Naměřená teplota ve stupních Celsia
+// "hum": 54.6,                     // float, Naměřená relativní vlhkost v procentech
+//
+// "settings": "get",
+//  "ip": "192.168.1.1"             // string, IP adresa zařízení
+//  "host": "ESP_HOST"              // string, Hostname zařízení
+//  "ClapThreshold": 10,            // integer, Prah pro detekci tlesknutí
+//  "CekejOdeslat": 5000,           // integer, Časový interval čekání na odeslání
+//  "CekejMereni": 3000,            // integer, Časový interval čekání na měření
+//  "CekejDetectClap": 2000,        // integer, Časový interval čekání na detekci tlesknutí
+//  "KalibrT": 1.23,                // float, Kalibrace teplotního senzoru
+//  "KalibrV": 0.98                 // float, Kalibrace vlhkostního senzoru
+//
+// "JSONsize": 123                  // integer, Velikost JSON dokumentu
 //
 //
 //
-// uložení některých dat do eprom (kalibrace dht, prodleva odesílání dat,nastavení hlasitosti a.t.d.)
 // Přidat mikrotlačítko reset
 // Průměrovat více měření mezi odesíláním
 //
@@ -97,8 +115,7 @@
 #include <ArduinoJson.h>   // https://github.com/bblanchon/ArduinoJson
 #include <DHT.h>           // https://github.com/adafruit/DHT-sensor-library
 #include <Preferences.h>   // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
-#include <Ticker.h>
-#include <Arduino.h>
+#include <Ticker.h>        // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
 
 #define DHTTYPE DHT11              // Typ DHT sezoru teploty a vlhkosti
 #define PREF_NAMESPACE "mqtt-app"  // Jmenný prostor EEPROM
@@ -119,39 +136,39 @@ const int Stisk = 7;                // !! CHANGE !!  Použití tlačítka ( Led 
 const bool AmpMeter = false;        // !! CHANGE !!  Zapnutí měření odběru
 
 const char* WIFI_HOSTNAME = Svetlo.c_str();
-char ssid[32];      // Proměnná pro SSID
-char password[32];  // Proměnná pro heslo
+char ssid[32];                      // Proměnná pro SSID
+char password[32];                  // Proměnná pro heslo
 // Mqtt proměnné nastavení
-char mqtt_server[40];        // MQTT IP adress
-char mqtt_port[6] = "1883";  // MQTT port
-char mqtt_username[32];      // MQTT User name
-char mqtt_password[32];      // MQTT Password
+char mqtt_server[40];               // MQTT IP adress
+char mqtt_port[6] = "1883";         // MQTT port
+char mqtt_username[32];             // MQTT User name
+char mqtt_password[32];             // MQTT Password
 // Nastavení vstupů ESP
-const int Sw = 2;           // Tlačítko
-const int ClapSensor = 12;  // Zvukový senzor připojený na analogový vstup GPIO34
-const int AmpPin = 40;      // Vstup ampérmetru
+const int Sw = 2;                   // Tlačítko
+const int ClapSensor = 12;          // Zvukový senzor připojený na analogový vstup GPIO34
+const int AmpPin = 40;              // Vstup ampérmetru
 // Výstupy kontrolky led
-const int LedPWR = 11;  // Ledka power
-const int LedWi = 7;    // Ledka připojení
-const int PwrSw = 9;    // Ledka / transistor zapnuti
+const int LedPWR = 11;              // Ledka power
+const int LedWi = 7;                // Ledka připojení
+const int PwrSw = 9;                // Ledka / transistor zapnuti
 // Výstupy ovládání
-const int Re = 39;       // Relé
-const int PwrRed = 4;    // Ledka power (red)   / Světlo 1
-const int PwrGreen = 6;  // Ledka power (green) / Světlo 2
-const int PwrBlue = 8;   // Ledka power (blue)  / Světlo 3
-
-int ClapThreshold = 900;    // Nastavitelná hladina detekce tlesknutí
-float CekejOdeslat = 20.0f;      // Prodleva mezi odesláním naměřených hodnot
-float CekejMereni = 4.0f;        // Prodleva mezi měřením DHT
-int CekejDetectClap = 50;   // Prodleva mezi detekcí tlesknutí
+const int Re = 39;                  // Relé
+const int PwrRed = 4;               // Ledka power (red)   / Světlo 1
+const int PwrGreen = 6;             // Ledka power (green) / Světlo 2
+const int PwrBlue = 8;              // Ledka power (blue)  / Světlo 3
+// Kalibrační hodnoty
+int ClapThreshold = 900;            // Nastavitelná hladina detekce tlesknutí
+float CekejOdeslat = 20.0f;         // Prodleva mezi odesláním naměřených hodnot
+float CekejMereni = 4.0f;           // Prodleva mezi měřením DHT
+int CekejDetectClap = 50;           // Prodleva mezi detekcí tlesknutí
 long LastMsg = 0;
 int Value = 0;
 char SvetloChr[50];
 // bool Tlac;
 String Zap_str;
 volatile bool Rep;
-volatile int OZap;  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
-volatile int Zap;   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+volatile int OZap;                  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+volatile int Zap;                   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
 float Teplota;
 float Vlhkost;
 char Pwr[50];
@@ -167,7 +184,7 @@ bool IsConnected = false;
 unsigned long lastClapTime = 0;
 bool firstClapDetected = false;
 const unsigned long doubleClapWindow = 500;
-Ticker TimerOdeslat,TimerMereni;
+Ticker TimerOdeslat, TimerMereni;
 
 void IRAM_ATTR pushInterrupt() {
   static unsigned long lastInterruptTime = 0;
@@ -175,28 +192,28 @@ void IRAM_ATTR pushInterrupt() {
   // Debouncing: ignorovat přerušení, pokud k němu došlo příliš brzy po předchozím
   if (interruptTime - lastInterruptTime > 200) {
     if (Zap == 0) {
-      Zap = Stisk;  // Nastavit novou hodnotu
+      Zap = Stisk;                  // Nastavit novou hodnotu
     } else {
-      Zap = 0;      // Resetovat hodnotu
+      Zap = 0;                      // Resetovat hodnotu
     }
-    Rep = !Rep;     // Přepnout stav tlačítka
+    Rep = !Rep;                     // Přepnout stav tlačítka
   }
   lastInterruptTime = interruptTime;
 }
 
 void setup() {
-  pinMode(Sw, INPUT_PULLUP);   // PullUp výstup nastavení pinu pro Tlačítko
-  pinMode(LedPWR, OUTPUT);     // Výstup nastavení pinu pro kontrolku led (červená) power
-  pinMode(LedWi, OUTPUT);      // Výstup nastavení pinu pro kontrolku led (modrá)   připojení k WiFi a MQTT
-  pinMode(PwrSw, OUTPUT);      // Výstup nastavení pinu pro kontrolku led (zelená)  zapnutí/vypnutí led/relé
-  pinMode(Re, OUTPUT);         // Výstup nastavení pinu pro relé
-  pinMode(PwrRed, OUTPUT);     // Výstup pro nastavení pinu světla led (red   / white)
-  pinMode(PwrGreen, OUTPUT);   // Výstup pro nastavení pinu světla led (green / white)
-  pinMode(PwrBlue, OUTPUT);    // Výstup pro nastavení pinu světla led (blue  / white)
-  pinMode(ClapSensor, INPUT);  // Vstup pro nastavení pinu Mikrofon
-  pinMode(AmpPin, INPUT);      // Vstup pro nastavení pinu Ampermetr
-  attachInterrupt(digitalPinToInterrupt(Sw), pushInterrupt, FALLING); // Přerušení na spadání hrany
-  analogWrite(LedPWR, LedL);  // Zapnutí kontrolky (červená) připojení ke zdroji
+  pinMode(Sw, INPUT_PULLUP);                                           // PullUp výstup nastavení pinu pro Tlačítko
+  pinMode(LedPWR, OUTPUT);                                             // Výstup nastavení pinu pro kontrolku led (červená) power
+  pinMode(LedWi, OUTPUT);                                              // Výstup nastavení pinu pro kontrolku led (modrá)   připojení k WiFi a MQTT
+  pinMode(PwrSw, OUTPUT);                                              // Výstup nastavení pinu pro kontrolku led (zelená)  zapnutí/vypnutí led/relé
+  pinMode(Re, OUTPUT);                                                 // Výstup nastavení pinu pro relé
+  pinMode(PwrRed, OUTPUT);                                             // Výstup pro nastavení pinu světla led (red   / white)
+  pinMode(PwrGreen, OUTPUT);                                           // Výstup pro nastavení pinu světla led (green / white)
+  pinMode(PwrBlue, OUTPUT);                                            // Výstup pro nastavení pinu světla led (blue  / white)
+  pinMode(ClapSensor, INPUT);                                          // Vstup pro nastavení pinu Mikrofon
+  pinMode(AmpPin, INPUT);                                              // Vstup pro nastavení pinu Ampermetr
+  attachInterrupt(digitalPinToInterrupt(Sw), pushInterrupt, FALLING);  // Přerušení na spadání hrany
+  analogWrite(LedPWR, LedL);                                           // Zapnutí kontrolky (červená) připojení ke zdroji
   Serial.begin(115200);
   delay(1500);
   if (Temp) {
@@ -323,7 +340,7 @@ void detectClap() {
         lastClapTime = currentTime;
       }
     }
-    // delay(CekejDetectClap);  // Zpoždění pro zabránění falešných detekcí
+    // delay(CekejDetectClap);      // Zpoždění pro zabránění falešných detekcí
   } else if (firstClapDetected && (currentTime - lastClapTime > doubleClapWindow)) {
     // Vypršelo časové okno pro druhé tlesknutí
     firstClapDetected = false;
@@ -369,30 +386,23 @@ void ledKontolaZapnuti() {
 }
 
 void aktivaceSvetel() {
-  if (Zap & 1) {
-    analogWrite(PwrRed, Red);
+    // Nastavujeme světla podle stavu v proměnné Zap
+    if (Zap & 1) {
+        analogWrite(PwrRed, Red);
+    } else {
+        analogWrite(PwrRed, 0);
+    }
+    if (Zap & 2) {
+        analogWrite(PwrGreen, Green);
+    } else {
+        analogWrite(PwrGreen, 0);
+    }
+    if (Zap & 4) {
+        analogWrite(PwrBlue, Blue);
+    } else {
+        analogWrite(PwrBlue, 0);
+    }
     ledKontolaZapnuti();
-  }
-  if (Zap & 2) {
-    analogWrite(PwrGreen, Green);
-    ledKontolaZapnuti();
-  }
-  if (Zap & 4) {
-    analogWrite(PwrBlue, Blue);
-    ledKontolaZapnuti();
-  }
-  if (!(Zap & 1)) {
-    analogWrite(PwrRed, 0);
-    ledKontolaZapnuti();
-  }
-  if (!(Zap & 2)) {
-    analogWrite(PwrGreen, 0);
-    ledKontolaZapnuti();
-  }
-  if (!(Zap & 4)) {
-    analogWrite(PwrBlue, 0);
-    ledKontolaZapnuti();
-  }
 }
 
 void tempAndAmpMeter() {
@@ -470,28 +480,67 @@ void callbackSettingsGet() {
 }
 
 void callbackDevice(JsonDocument& doc) {
+  // Pomocná funkce pro zpracování hodnot
+  auto processValue = [](JsonVariant variant, int& value) {
+    if (variant != nullptr) {
+      value = round(variant.as<int>() * 2.54);
+    }
+  };
+
   if (doc["on"] != nullptr) {
     Zap = doc["on"];
   }
-  if (doc["spectrumRGB"][0] != nullptr) {
-    Red = doc["spectrumRGB"][0];
-  }
-  if (doc["spectrumRGB"][1] != nullptr) {
-    Green = doc["spectrumRGB"][1];
-  }
-  if (doc["spectrumRGB"][2] != nullptr) {
-    Blue = doc["spectrumRGB"][2];
-  }
+
   if (doc["brightArd"] != nullptr) {
     LedL = doc["brightArd"];
   }
-  if (doc["brightness"] != nullptr) {
-    Bright = doc["brightness"];
-    Bright = round(Bright * 2.54);
-  }
-  bool Stav;
-  if (doc["stav"] != nullptr) {
-    Poslat();
+
+  switch (LedType) {
+
+    case 1:
+      {
+        processValue(doc["brightness"], Bright);
+      }
+      break;
+
+    case 2:
+      {
+        if (doc["2Lights"][0] != nullptr) {
+          processValue(doc["2Lights"][0], Red);
+        }
+        if (doc["2Lights"][1] != nullptr) {
+          processValue(doc["2Lights"][1], Green);
+        }
+      }
+      break;
+
+    case 4:
+      {
+        if (doc["3Lights"][0] != nullptr) {
+          processValue(doc["3Lights"][0], Red);
+        }
+        if (doc["3Lights"][1] != nullptr) {
+          processValue(doc["3Lights"][1], Green);
+        }
+        if (doc["3Lights"][2] != nullptr) {
+          processValue(doc["3Lights"][2], Blue);
+        }
+      }
+      break;
+
+    case 8:
+      {
+        if (doc["spectrumRGB"][0] != nullptr) {
+          Red = doc["spectrumRGB"][0];
+        }
+        if (doc["spectrumRGB"][1] != nullptr) {
+          Green = doc["spectrumRGB"][1];
+        }
+        if (doc["spectrumRGB"][2] != nullptr) {
+          Blue = doc["spectrumRGB"][2];
+        }
+      }
+      break;
   }
 }
 
@@ -517,13 +566,35 @@ void Poslat() {
           bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
   doc["bssid"] = bssidStr;
 
-  if (LedType == 1) {
-    doc["brightness"] = round(Bright / 2.54);
-  } else if (LedType == 2) {
-    JsonArray data = doc.createNestedArray("spectrumRGB");
-    data.add(Red);
-    data.add(Green);
-    data.add(Blue);
+  switch (LedType) {
+    case 1:
+      {
+        doc["brightness"] = round(Bright / 2.54);
+      }
+      break;
+    case 2:
+      {
+        JsonArray data = doc.createNestedArray("2Lights");
+        data.add(round(Red / 2.54));
+        data.add(round(Green / 2.54));
+      }
+      break;
+    case 4:
+      {
+        JsonArray data = doc.createNestedArray("3Lights");
+        data.add(round(Red / 2.54));
+        data.add(round(Green / 2.54));
+        data.add(round(Blue / 2.54));
+      }
+      break;
+    case 8:
+      {
+        JsonArray data = doc.createNestedArray("spectrumRGB");
+        data.add(Red);
+        data.add(Green);
+        data.add(Blue);
+      }
+      break;
   }
 
   if (Temp) {
