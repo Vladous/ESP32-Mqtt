@@ -105,7 +105,7 @@
 //
 //
 // Přidat mikrotlačítko reset
-// Průměrovat více měření mezi odesíláním
+// Přidat podmínky boolean na všechna dostupná místa
 //
 
 
@@ -116,6 +116,7 @@
 #include <DHT.h>           // https://github.com/adafruit/DHT-sensor-library
 #include <Preferences.h>   // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
 #include <Ticker.h>        // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
+#include <esp_system.h>    // Dočasné testování příčiny restartu
 
 #define DHTTYPE DHT11              // Typ DHT sezoru teploty a vlhkosti
 #define PREF_NAMESPACE "mqtt-app"  // Jmenný prostor EEPROM
@@ -127,12 +128,12 @@ PubSubClient client(espClient);
 Preferences preferences;
 
 // Rozdělit světla a relé
-const int LedType = 3;              // !! CHANGE !!  Typ led světel   ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8 )
+const int LedType = 8;              // !! CHANGE !!  Typ led světel   ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8 )
 const String Svetlo = "Svetlo_05";  // !! CHANGE !!  Topic název zařízení
-const bool Relay = false;           // !! CHANGE !!  Relé (Zásuvka)
+const bool Relay = false;           // !! CHANGE !!  Relé (Zásuvka)                    //////// Přesunout do Stisk
 const bool Clap = false;            // !! CHANGE !!  Použití mikrofonu
-const bool Temp = true;             // !! CHANGE !!  Použití DHT sezoru měření teploty
-const int Stisk = 7;                // !! CHANGE !!  Použití tlačítka ( Led světlo 1 - 1 , Led světlo 2 - 2 , Led světlo 3 / RGB - 4 , Relé - 16 )
+const bool Temp = false;             // !! CHANGE !!  Použití DHT sezoru měření teploty
+const int Stisk = 8;                // !! CHANGE !!  Použití tlačítka ( Led světlo 1 - 1 , Led světlo 2 - 2 , Led světlo 4, RGB - 8 , Relé - 16 )
 const bool AmpMeter = false;        // !! CHANGE !!  Zapnutí měření odběru
 
 const char* WIFI_HOSTNAME = Svetlo.c_str();
@@ -216,6 +217,7 @@ void setup() {
   analogWrite(LedPWR, LedL);                                           // Zapnutí kontrolky (červená) připojení ke zdroji
   Serial.begin(115200);
   delay(1500);
+  printResetReason();     // Dočasné testování příčiny restartu
   if (Temp) {
     dht.begin();
   }
@@ -352,9 +354,9 @@ void loop() {
   if (!IsConnected) {
     connectToNetwork();
   }
-  yield();
+  
   client.loop();
-  yield();
+  
   if (Clap) {
     detectClap();
   }
@@ -371,10 +373,11 @@ void loop() {
       ledKontolaZapnuti();
     }
   }
+  
   // Úprava nstavení jasu kontrolek
   analogWrite(LedPWR, LedL);
   analogWrite(LedWi, LedL);
-  yield();
+  
 }
 
 void ledKontolaZapnuti() {
@@ -467,14 +470,23 @@ void callbackSettingsSet(JsonDocument& doc) {
 
 void callbackSettingsGet() {
   DynamicJsonDocument responseDoc(512);
-  responseDoc["ClapThreshold"] = ClapThreshold;
-  responseDoc["CekejOdeslat"] = CekejOdeslat;
-  responseDoc["CekejMereni"] = CekejMereni;
-  responseDoc["CekejDetectClap"] = CekejDetectClap;
-  responseDoc["KalibrT"] = KalibrT;
-  responseDoc["KalibrV"] = KalibrV;
-
+  responseDoc["ip"] = WiFi.localIP().toString();
+  responseDoc["host"] = WIFI_HOSTNAME;
+  responseDoc["CekejOdeslat"] = CekejOdeslat;  
+  if (Temp || AmpMeter) {
+    responseDoc["CekejMereni"] = CekejMereni;
+    if (Temp) {
+      responseDoc["KalibrT"] = KalibrT;
+      responseDoc["KalibrV"] = KalibrV;
+    }
+  }  
+  if (Clap) {
+    responseDoc["ClapThreshold"] = ClapThreshold;
+    responseDoc["CekejDetectClap"] = CekejDetectClap;
+  }
   char responseOut[512];
+  int jsonSize = serializeJson(responseDoc, responseOut);
+  responseDoc["JSONsize"] = jsonSize;
   serializeJson(responseDoc, responseOut);
   client.publish(SvetloChr, responseOut);
 }
@@ -542,6 +554,7 @@ void callbackDevice(JsonDocument& doc) {
       }
       break;
   }
+  aktivaceSvetel();
 }
 
 void reconnect() {
@@ -552,7 +565,7 @@ void reconnect() {
 
 void Poslat() {
   DynamicJsonDocument doc(512);
-  yield();
+  
 
   // Základní informace o zařízení
   doc["on"] = Zap;
@@ -595,7 +608,7 @@ void Poslat() {
         data.add(Blue);
       }
       break;
-  }
+    }
 
   if (Temp) {
     doc["temp"] = Teplota;
@@ -610,46 +623,15 @@ void Poslat() {
   int jsonSize = serializeJson(doc, out);
   doc["JSONsize"] = jsonSize;
   serializeJson(doc, out);
-  yield();
-  client.publish(SvetloChr, out);
-}
-
-void poslatSettings() {
-  DynamicJsonDocument doc(512);
-  yield();
-
-  doc["ip"] = WiFi.localIP().toString();
-  doc["host"] = WIFI_HOSTNAME;
-
-  // Přidání kalibračních hodnot a časovačů
-  doc["CekejOdeslat"] = CekejOdeslat;
-
-  if (Temp || AmpMeter) {
-    doc["CekejMereni"] = CekejMereni;
-    if (Temp) {
-      doc["KalibrT"] = KalibrT;
-      doc["KalibrV"] = KalibrV;
-    }
-  }
-
-  if (Clap) {
-    doc["ClapThreshold"] = ClapThreshold;
-    doc["CekejDetectClap"] = CekejDetectClap;
-  }
-
-  char out[256];
-  int jsonSize = serializeJson(doc, out);
-  doc["JSONsize"] = jsonSize;
-  serializeJson(doc, out);
-  yield();
+  
   client.publish(SvetloChr, out);
 }
 
 void senzorTemp() {
-  Teplota = (Teplota + dht.readTemperature() / KalibrT) / 2;
-  delay(10);
-  Vlhkost = (Vlhkost + dht.readHumidity() / KalibrV) / 2;
-  delay(10);
+  float t = dht.readTemperature();
+  Teplota = (Teplota + t / KalibrT) / 2;
+  float h = dht.readHumidity();
+  Vlhkost = (Vlhkost + h / KalibrV) / 2;
 }
 
 void measureAmp() {  // Měření hodnoty z ampermetru
@@ -704,5 +686,24 @@ void connectToNetwork() {
     }
   } else {
     IsConnected = false;
+  }
+}
+
+// Dočasné testování příčiny restartu
+
+void printResetReason() {
+  esp_reset_reason_t reason = esp_reset_reason();
+  switch (reason) {
+    case ESP_RST_POWERON:   Serial.println("Power on reset"); break;
+    case ESP_RST_EXT:       Serial.println("External reset"); break;
+    case ESP_RST_SW:        Serial.println("Software reset"); break;
+    case ESP_RST_PANIC:     Serial.println("Panic reset"); break;
+    case ESP_RST_INT_WDT:   Serial.println("Interrupt watchdog reset"); break;
+    case ESP_RST_TASK_WDT:  Serial.println("Task watchdog reset"); break;
+    case ESP_RST_WDT:       Serial.println("Watchdog reset"); break;
+    case ESP_RST_DEEPSLEEP: Serial.println("Deep sleep reset"); break;
+    case ESP_RST_BROWNOUT:  Serial.println("Brownout reset"); break;
+    case ESP_RST_SDIO:      Serial.println("SDIO reset"); break;
+    default:                Serial.println("Unknown reset reason"); break;
   }
 }
