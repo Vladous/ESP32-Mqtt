@@ -130,9 +130,9 @@ Preferences preferences;
 // Rozdělit světla a relé
 const int LedType = 8;              // !! CHANGE !!  Typ led světel   ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8 )
 const String Svetlo = "Svetlo_05";  // !! CHANGE !!  Topic název zařízení
-const bool Relay = false;           // !! CHANGE !!  Relé (Zásuvka)                    //////// Přesunout do Stisk
+const bool Relay = false;           // !! CHANGE !!  Relé (Zásuvka)
 const bool Clap = false;            // !! CHANGE !!  Použití mikrofonu
-const bool Temp = false;             // !! CHANGE !!  Použití DHT sezoru měření teploty
+const bool Temp = false;            // !! CHANGE !!  Použití DHT sezoru měření teploty
 const int Stisk = 8;                // !! CHANGE !!  Použití tlačítka ( Led světlo 1 - 1 , Led světlo 2 - 2 , Led světlo 4, RGB - 8 , Relé - 16 )
 const bool AmpMeter = false;        // !! CHANGE !!  Zapnutí měření odběru
 
@@ -352,7 +352,7 @@ void detectClap() {
 void loop() {
   OZap = Zap;
   if (!IsConnected) {
-    connectToNetwork();
+    connectToNetwork();     // Po výpadku MQTT se znovu nepřipojí !!
   }
   
   client.loop();
@@ -446,11 +446,11 @@ void callbackSettingsSet(JsonDocument& doc) {
     preferences.putInt("ClapThreshold", ClapThreshold);
   }
   if (doc.containsKey("CekejOdeslat")) {
-    CekejOdeslat = doc["CekejOdeslat"].as<int>();
+    CekejOdeslat = doc["CekejOdeslat"].as<float>();
     preferences.putInt("CekejOdeslat", CekejOdeslat);
   }
   if (doc.containsKey("CekejMereni")) {
-    CekejMereni = doc["CekejMereni"].as<int>();
+    CekejMereni = doc["CekejMereni"].as<float>();
     preferences.putInt("CekejMereni", CekejMereni);
   }
   if (doc.containsKey("CekejDetectClap")) {
@@ -689,7 +689,14 @@ void connectToNetwork() {
   }
 }
 
-// Dočasné testování příčiny restartu
+// Zatím nepoužitá funkce
+void resetCalibreData() {
+ preferences.begin(PREF_NAMESPACE, false);
+  // Vymažte všechny záznamy v Preferences
+  preferences.clear();
+  preferences.end();
+}
+
 
 void printResetReason() {
   esp_reset_reason_t reason = esp_reset_reason();
