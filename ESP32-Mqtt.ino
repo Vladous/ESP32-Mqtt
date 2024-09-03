@@ -177,7 +177,7 @@ int Red = 254;
 int Green = 254;
 int Blue = 254;
 int LedL = 254;
-int Bright = 254;
+//int Bright = 254;
 double KalibrT = 1.33;
 double KalibrV = 0.70;
 int PwrAmp;
@@ -405,6 +405,15 @@ void aktivaceSvetel() {
     } else {
         analogWrite(PwrBlue, 0);
     }
+    if (Zap & 8) {
+        analogWrite(PwrRed, Red);
+        analogWrite(PwrGreen, Green);
+        analogWrite(PwrBlue, Blue);
+    } else {
+        analogWrite(PwrRed, 0);
+        analogWrite(PwrGreen, 0);
+        analogWrite(PwrBlue, 0);
+    }
     ledKontolaZapnuti();
 }
 
@@ -492,12 +501,6 @@ void callbackSettingsGet() {
 }
 
 void callbackDevice(JsonDocument& doc) {
-  // Pomocná funkce pro zpracování hodnot
-  auto processValue = [](JsonVariant variant, int& value) {
-    if (variant != nullptr) {
-      value = round(variant.as<int>() * 2.54);
-    }
-  };
 
   if (doc["on"] != nullptr) {
     Zap = doc["on"];
@@ -507,35 +510,69 @@ void callbackDevice(JsonDocument& doc) {
     LedL = doc["brightArd"];
   }
 
-  switch (LedType) {
+  switch (Zap) {
 
     case 1:
       {
-        processValue(doc["brightness"], Bright);
+        Red = doc["brightness"];
       }
       break;
 
     case 2:
       {
-        if (doc["2Lights"][0] != nullptr) {
-          processValue(doc["2Lights"][0], Red);
-        }
-        if (doc["2Lights"][1] != nullptr) {
-          processValue(doc["2Lights"][1], Green);
-        }
+        Green = doc["brightness"];
       }
       break;
 
+    case 3:
+      {
+        if (doc["brightness"][0] != nullptr) {
+          Red = doc["brightness"][0];
+        }
+        if (doc["brightness"][1] != nullptr) {
+          Green = doc["brightness"][1];
+        }
+      }
+      break;
+    
     case 4:
       {
-        if (doc["3Lights"][0] != nullptr) {
-          processValue(doc["3Lights"][0], Red);
+        Blue = doc["brightness"];
+      }
+      break;
+    
+    case 5:
+      {
+        if (doc["brightness"][0] != nullptr) {
+          Red = doc["brightness"][0];
         }
-        if (doc["3Lights"][1] != nullptr) {
-          processValue(doc["3Lights"][1], Green);
+        if (doc["brightness"][1] != nullptr) {
+          Blue = doc["brightness"][1];
         }
-        if (doc["3Lights"][2] != nullptr) {
-          processValue(doc["3Lights"][2], Blue);
+      }
+      break;
+    
+    case 6:
+      {
+        if (doc["brightness"][0] != nullptr) {
+          Green = doc["brightness"][0];
+        }
+        if (doc["brightness"][1] != nullptr) {
+          Blue = doc["brightness"][1];
+        }
+      }
+      break;
+    
+    case 7:
+      {
+        if (doc["brightness"][0] != nullptr) {
+          Red = doc["brightness"][0];
+        }
+        if (doc["brightness"][1] != nullptr) {
+          Green = doc["brightness"][1];
+        }
+        if (doc["brightness"][2] != nullptr) {
+          Blue = doc["brightness"][2];
         }
       }
       break;
@@ -582,22 +619,46 @@ void Poslat() {
   switch (LedType) {
     case 1:
       {
-        doc["brightness"] = round(Bright / 2.54);
+        doc["brightness"] = Red;
       }
       break;
     case 2:
       {
-        JsonArray data = doc.createNestedArray("2Lights");
-        data.add(round(Red / 2.54));
-        data.add(round(Green / 2.54));
+        doc["brightness"] = Green;
       }
       break;
+    case 3:
+      {
+        JsonArray data = doc.createNestedArray("brightness");
+        data.add(Red);
+        data.add(Green);
+      }
+      break;  
     case 4:
       {
-        JsonArray data = doc.createNestedArray("3Lights");
-        data.add(round(Red / 2.54));
-        data.add(round(Green / 2.54));
-        data.add(round(Blue / 2.54));
+        doc["brightness"] = Blue;
+      }
+      break;
+    case 5:
+      {
+        JsonArray data = doc.createNestedArray("brightness");
+        data.add(Red);
+        data.add(Blue);
+      }
+      break;    
+    case 6:
+      {
+        JsonArray data = doc.createNestedArray("brightness");
+        data.add(Green);
+        data.add(Blue);
+      }
+      break;
+    case 7:
+      {
+        JsonArray data = doc.createNestedArray("brightness");
+        data.add(Green);
+        data.add(Green);
+        data.add(Blue);
       }
       break;
     case 8:
