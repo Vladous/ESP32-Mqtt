@@ -1,23 +1,53 @@
 # MQTT Device Control
 
+[<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cz.svg" width="16"> Česky](./README.md) | [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/gb.svg" width="16"> English](./README.en.md)
+
 Tento projekt umožňuje ovládat různá zařízení (LED, RGB LED, relé) pomocí modulu ESP32 a komunikace přes MQTT. Jednoduše upravte typ zařízení a nastavte adresy serverů a můžete začít ovládat vaše zařízení prostřednictvím MQTT.
 
-### Flexibilita:
-- Tento projekt je navržen tak, aby byl snadno rozšířitelný na různé typy zařízení. Stačí změnit konfiguraci a můžete přidat nová zařízení bez nutnosti velkých úprav kódu.
+## 🌟 Hlavní výhody
 
-- Jednoduchá konfigurace: Konfigurace je snadná a přehledná. Stačí změnit několik proměnných a váš modul ESP32 bude komunikovat s MQTT serverem a ovládat vaše zařízení.
+### 🔧 Flexibilita
+- Tento projekt je navržen tak, aby byl snadno rozšířitelný na různé typy zařízení. 
+- Stačí změnit konfiguraci a můžete přidat nová zařízení bez nutnosti velkých úprav kódu.
 
-## Jak začít
-- Předpoklady: Ujistěte se, že máte modul ESP32 a potřebné periferie (LED, RGB LED, relé) k dispozici.
+### 🛠️ Jednoduchá konfigurace
+- Konfigurace je snadná a přehledná. 
+- Stačí změnit několik proměnných a váš modul ESP32 bude komunikovat s MQTT serverem a ovládat vaše zařízení.
 
-- Nastavení: Otevřete kód a upravte konfigurační soubor pro váš projekt. Změňte typ zařízení (LED, RGB LED, relé) a nastavte adresy MQTT serverů.
+## 🚀 Jak začít
 
-- Nahrání kódu: Nahrání upraveného kódu na váš modul ESP32.
+### 📋 Předpoklady
+- Ujistěte se, že máte modul ESP32 a potřebné periferie (LED, RGB LED, relé) k dispozici.
 
-### Použití:
+### ⚙️ Nastavení
+1. Otevřete kód a upravte konfigurační soubor pro váš projekt. 
+2. Změňte typ zařízení (LED, RGB LED, relé) a nastavte adresy MQTT serverů.
+
+### 📥 Nahrání kódu
+- Nahrajte upravený kód na váš modul ESP32.
+
+### 🎮 Použití
 - Vzdáleně ovládejte vaše zařízení pomocí MQTT zpráv.
 
+---
 
-_Pokud máte nápady na vylepšení tohoto projektu, budeme rádi za příspěvky a pull requesty._
+## 🤝 Přispívání
 
-_Můžete také hlásit chyby a problémy v sekci Issues._
+Pokud máte nápady na vylepšení tohoto projektu, budeme rádi za příspěvky a pull requesty.
+
+## 🐛 Hlášení chyb
+
+Můžete hlásit chyby a problémy v [sekci Issues](https://github.com/Vladous/ESP32-Mqtt/issues) tohoto repozitáře.
+
+---
+
+## ⚠️ Varování: Práce s vysokým napětím
+
+**POZOR:** Tento projekt zahrnuje práci s vysokým napětím (230V AC). Práce s vysokým napětím může být extrémně nebezpečná a potenciálně smrtelná, pokud není prováděna správně. Pokud nemáte odpovídající zkušenosti a kvalifikaci, důrazně doporučujeme vyhledat pomoc kvalifikovaného elektrikáře nebo odborníka.
+
+## 🛑 Zřeknutí se odpovědnosti
+
+Autor tohoto projektu nenese žádnou odpovědnost za jakékoli škody, zranění nebo úmrtí způsobené použitím těchto informací. Použití těchto informací je na vlastní nebezpečí. Uživatel přebírá plnou odpovědnost za zajištění bezpečnosti při realizaci tohoto projektu a dodržování všech příslušných bezpečnostních předpisů a norem.
+
+Před zahájením práce na tomto projektu si prosím důkladně prostudujte všechny bezpečnostní pokyny a předpisy týkající se práce s elektrickými zařízeními a vysokým napětím.
+
