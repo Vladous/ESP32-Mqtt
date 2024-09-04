@@ -26,7 +26,7 @@
 ### ⚡ Power Supply
 | Component       | Quantity | Description                         | Datasheet |
 |-----------------|:--------:|-------------------------------------|:----------|
-| AC-DC Converter |    1     | 230V to 12V Power Supply Board       | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/AC-DC Converter.png" width="100"> |
+| AC-DC Converter |    1     | 230V to 12V Power Supply Board       | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/AC-DC Converter.png" width="50"> |
 | Voltage Regulator|    1     | 78S05 +5V 2A                       | [78S05 datasheet](https://www.farnell.com/datasheets/1815527.pdf) |
 
 ---
@@ -36,14 +36,14 @@
 ### 🔘 Button
 | Component       | Quantity | Description            | Preview |
 |-----------------|:--------:|------------------------|:--------|
-| Membrane Switch |    1     | Single key             | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/MembraneButton.png" width="100"> |
+| Membrane Switch |    1     | Single key             | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/MembraneButton.png" width="50"> |
 
 ### 🔌 230V Output
 | Component       | Quantity | Description                         | Datasheet |
 |-----------------|:--------:|-------------------------------------|:----------|
 | Relay           |    1     | SRD-12VDC-SL-C Mini Power Relay 10A | [SRD-12VDC-SL-C datasheet](http://www.songlerelay.com/Public/Uploads/20161104/581c81ac16e36.pdf) |
 | Optocoupler     |    1     | PC817C                              | [PC817C datasheet](https://www.farnell.com/datasheets/73758.pdf) |
-| Terminal Block  |    1     | 3-Pin Universal Screw Terminal 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="100"> |
+| Terminal Block  |    1     | 3-Pin Universal Screw Terminal 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="50"> |
 | Transistor      |    1     | TIP120 60V, 5A, NPN, TO-220         | [TIP120 datasheet](https://www.farnell.com/datasheets/2877030.pdf) |
 | Resistor        |    1     | 10K                                ||
 
@@ -53,7 +53,7 @@
 |-----------------|:--------:|-------------------------------------|:----------|
 | Transistor      | 1-3      | TIP120 60V, 5A, NPN, TO-220         | [TIP120 datasheet](https://www.farnell.com/datasheets/2877030.pdf) |
 | Resistor        | 1-3      | 10K                                ||
-| Terminal Block  |    1     | 4-Pin Universal Screw Terminal 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="100"> |
+| Terminal Block  |    1     | 4-Pin Universal Screw Terminal 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="50"> |
 
 ### 👏 Clap Control
 | Component       | Quantity | Description                         | Datasheet |
@@ -65,7 +65,7 @@
 | Component       | Quantity | Description                         | Datasheet |
 |-----------------|:--------:|-------------------------------------|:----------|
 | Current Sensor  |    1     | ACS712 20A                          ||
-| Terminal Block  |    1     | 3-Pin Universal Screw Terminal 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="100"> |
+| Terminal Block  |    1     | 3-Pin Universal Screw Terminal 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="50"> |
 
 ---
 

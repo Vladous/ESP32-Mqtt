@@ -26,7 +26,7 @@
 ### ⚡ Napájení
 | Součástka | Množství | Popis | Datasheet |
 |-----------|:--------:|:-------|:-------|
-| AC-DC Converter | 1 | 230V na 12V Power Supply Board |<img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/AC-DC Converter.png" width="100"> |
+| AC-DC Converter | 1 | 230V na 12V Power Supply Board |<img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/AC-DC Converter.png" width="50"> |
 | Stabilizátor napětí | 1 | 78S05 +5V 2A |[78S05 datasheet](https://www.farnell.com/datasheets/1815527.pdf)|
 
 ---
@@ -36,14 +36,14 @@
 ### 🔘 Tlačítko
 | Součástka | Množství | Popis | Náhled |
 |-----------|:--------:|:------|:------|
-| Membránový spínač | 1 | 1 klávesa | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/MembraneButton.png" width="100"> |
+| Membránový spínač | 1 | 1 klávesa | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/MembraneButton.png" width="50"> |
 
 ### 🔌 Výstup 230V
 | Součástka | Množství | Popis | Datasheet |
 |-----------|:--------:|:-------|:-------|
 | Relé | 1 | SRD-12VDC-SL-C Mini výkonové relé 10A |[SRD-12VDC-SL-C datasheet](http://www.songlerelay.com/Public/Uploads/20161104/581c81ac16e36.pdf)|
 | Optočlen | 1 | PC817C |[PC817C datasheet](https://www.farnell.com/datasheets/73758.pdf)|
-| Svorkovnice | 1 | 3Pin Universální šroubovací svorka 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="100"> |
+| Svorkovnice | 1 | 3Pin Universální šroubovací svorka 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="50"> |
 | Tranzistor | 1 | TIP120 60V, 5A, NPN, TO-220 |[TIP120 datasheet](https://www.farnell.com/datasheets/2877030.pdf)|
 | Rezistor | 1 | 10K |
 
@@ -53,7 +53,7 @@
 |-----------|:--------:|:-------|:-------|
 | Tranzistor | 1-3 | TIP120 60V, 5A, NPN, TO-220 |[TIP120 datasheet](https://www.farnell.com/datasheets/2877030.pdf)|
 | Rezistor | 1-3 | 10K ||
-| Svorkovnice | 1 | 4Pin Universální šroubovací svorka 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="100"> |
+| Svorkovnice | 1 | 4Pin Universální šroubovací svorka 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="50"> |
 
 ### 👏 Ovládání tlesknutím
 | Součástka | Množství | Popis | Datasheet |
@@ -65,7 +65,7 @@
 | Součástka | Množství | Popis | Datasheet |
 |-----------|:--------:|:-------|:-------|
 | Proudový senzor | 1 | ACS712 20A |
-| Svorkovnice | 1 | 3Pin Universální šroubovací svorka 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="100"> |
+| Svorkovnice | 1 | 3Pin Universální šroubovací svorka 2.54mm PCB | <img src="https://github.com/Vladous/ESP32-Mqtt/raw/main/.pictures/UniversalniSvorka.png" width="50"> |
 ---
 
 ## 📝 Poznámky
