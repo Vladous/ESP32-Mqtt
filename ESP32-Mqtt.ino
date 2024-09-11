@@ -131,7 +131,7 @@ Preferences preferences;
 
 // Rozdělit světla a relé
 const int LedType = 8;              // !! CHANGE !!  Typ led světel   ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8 )
-const String Svetlo = "Svetlo_05";  // !! CHANGE !!  Topic název zařízení
+const String Svetlo = "Test_Board"; // !! CHANGE !!  Topic název zařízení
 const bool Relay = false;           // !! CHANGE !!  Relé (Zásuvka)
 const bool Clap = false;            // !! CHANGE !!  Použití mikrofonu
 const bool Temp = false;            // !! CHANGE !!  Použití DHT sezoru měření teploty
@@ -603,9 +603,8 @@ void reconnect() {
 }
 
 void Poslat() {
-  DynamicJsonDocument doc(512);
-  
-
+  reconnect();
+  DynamicJsonDocument doc(512);  
   // Základní informace o zařízení
   doc["on"] = Zap;
   doc["signal"] = WiFi.RSSI();
