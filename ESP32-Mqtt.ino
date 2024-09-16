@@ -122,6 +122,12 @@
 
 #define DHTTYPE DHT11              // Typ DHT sezoru teploty a vlhkosti
 #define PREF_NAMESPACE "mqtt-app"  // Jmenný prostor EEPROM
+
+#define LED_WHITE1  0x01
+#define LED_WHITE2  0x02
+#define LED_WHITE3  0x04
+#define LED_RGB     0x08
+
 uint8_t DHTPin = 3;                // Nastavení datového pinu DHT
 DHT dht(DHTPin, DHTTYPE);          // Inicializace DHT senzoru
 
@@ -130,13 +136,14 @@ PubSubClient client(espClient);
 Preferences preferences;
 
 // Rozdělit světla a relé
-const int LedType = 8;              // !! CHANGE !!  Typ led světel   ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8 )
-const String Svetlo = "Test_Board"; // !! CHANGE !!  Topic název zařízení
-const bool Relay = false;           // !! CHANGE !!  Relé (Zásuvka)
-const bool Clap = false;            // !! CHANGE !!  Použití mikrofonu
-const bool Temp = false;            // !! CHANGE !!  Použití DHT sezoru měření teploty
-const int Stisk = 8;                // !! CHANGE !!  Použití tlačítka ( Led světlo 1 - 1 , Led světlo 2 - 2 , Led světlo 4, RGB - 8 , Relé - 16 )
-const bool AmpMeter = false;        // !! CHANGE !!  Zapnutí měření odběru
+const uint8_t LedType = LED_WHITE1 | LED_WHITE2;    // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB
+//const int LedType = 8;                            // !! CHANGE !!  Typ led světel   ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8 )
+const String Svetlo = "Test_Board";                 // !! CHANGE !!  Topic název zařízení
+const bool Relay = false;                           // !! CHANGE !!  Relé (Zásuvka)
+const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonu
+const bool Temp = false;                            // !! CHANGE !!  Použití DHT sezoru měření teploty
+const int Stisk = 8;                                // !! CHANGE !!  Použití tlačítka ( Led světlo 1 - 1 , Led světlo 2 - 2 , Led světlo 4, RGB - 8 , Relé - 16 )
+const bool AmpMeter = false;                        // !! CHANGE !!  Zapnutí měření odběru
 
 const char* WIFI_HOSTNAME = Svetlo.c_str();
 char ssid[32];                      // Proměnná pro SSID
@@ -175,9 +182,32 @@ volatile int Zap;                   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , 
 float Teplota;
 float Vlhkost;
 char Pwr[50];
+
+#if (LedType & LED_WHITE1)
+bool led1State = false;
+int led1Brightness = 255;
+#endif
+
+// Pokud je LED2 dostupná
+#if (LedType & LED_WHITE2)
+bool led2State = false;
+int led2Brightness = 255;
+#endif
+
+// Pokud je LED3 dostupná
+#if (LedType & LED_WHITE3)
+bool led3State = false;
+int led3Brightness = 255;
+#endif
+
+// Pokud je RGB LED dostupná
+#if (LedType & LED_RGB)
+bool ledRGBState = false;
 int Red = 254;
 int Green = 254;
 int Blue = 254;
+#endif
+
 int LedL = 254;
 //int Bright = 254;
 double KalibrT = 1.33;
