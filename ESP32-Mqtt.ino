@@ -421,30 +421,42 @@ void ledKontolaZapnuti() {
 }
 
 void aktivaceSvetel() {
-    // Nastavujeme světla podle stavu v proměnné Zap
-    if (Zap & 1) {
-        analogWrite(PwrRed, Red);
-    } else {
-        analogWrite(PwrRed, 0);
+    // LED1
+    if (LedType & LED_WHITE1) {
+        if (led1State) {
+            analogWrite(PwrRed, led1Brightness);
+        } else {
+            analogWrite(PwrRed, 0);
+        }
     }
-    if (Zap & 2) {
-        analogWrite(PwrGreen, Green);
-    } else {
-        analogWrite(PwrGreen, 0);
+    // LED2
+    if (LedType & LED_WHITE2) {
+        if (led2State) {
+            analogWrite(PwrGreen, led2Brightness);
+        } else {
+            analogWrite(PwrGreen, 0);
+        }
     }
-    if (Zap & 4) {
-        analogWrite(PwrBlue, Blue);
-    } else {
-        analogWrite(PwrBlue, 0);
+    // LED3
+    if (LedType & LED_WHITE3) {
+        if (led3State) {
+            analogWrite(PwrBlue, led3Brightness);
+        } else {
+            analogWrite(PwrBlue, 0);
+        }
     }
-    if (Zap & 8) {
-        analogWrite(PwrRed, Red);
-        analogWrite(PwrGreen, Green);
-        analogWrite(PwrBlue, Blue);
-    } else {
-        analogWrite(PwrRed, 0);
-        analogWrite(PwrGreen, 0);
-        analogWrite(PwrBlue, 0);
+    // RGB LED
+    if (LedType & LED_RGB) {
+        if (ledRGBState) {
+            analogWrite(PwrRed, ledRed);
+            analogWrite(PwrGreen, ledGreen);
+            analogWrite(PwrBlue, ledBlue);
+        } else {
+            // Pokud RGB LED není zapnuta, vypneme její piny
+            analogWrite(PwrRed, 0);
+            analogWrite(PwrGreen, 0);
+            analogWrite(PwrBlue, 0);
+        }
     }
     ledKontolaZapnuti();
 }
