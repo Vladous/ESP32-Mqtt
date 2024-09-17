@@ -123,10 +123,11 @@
 #define DHTTYPE DHT11              // Typ DHT sezoru teploty a vlhkosti
 #define PREF_NAMESPACE "mqtt-app"  // Jmenný prostor EEPROM
 
-#define LED_WHITE1  0x01
-#define LED_WHITE2  0x02
-#define LED_WHITE3  0x04
-#define LED_RGB     0x08
+#define LED_WHITE1    0x01
+#define LED_WHITE2    0x02
+#define LED_WHITE3    0x04
+#define LED_RGB       0x08
+#define DEVICE_RELAY  0x10
 
 uint8_t DHTPin = 3;                // Nastavení datového pinu DHT
 DHT dht(DHTPin, DHTTYPE);          // Inicializace DHT senzoru
@@ -135,14 +136,12 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 Preferences preferences;
 
-// Rozdělit světla a relé
-const uint8_t LedType = LED_WHITE1 | LED_WHITE2;    // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB
-//const int LedType = 8;                            // !! CHANGE !!  Typ led světel   ( White(1) - 1 / Wihe(2) - 2 / White (3) - 4 / RGB - 8 )
+const uint8_t DeviceType = LED_WHITE1 | LED_WHITE2; // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
 const String Svetlo = "Test_Board";                 // !! CHANGE !!  Topic název zařízení
-const bool Relay = false;                           // !! CHANGE !!  Relé (Zásuvka)
+//const bool Relay = false;                         // !! CHANGE !!  Relé (Zásuvka)
 const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonu
 const bool Temp = false;                            // !! CHANGE !!  Použití DHT sezoru měření teploty
-const int Stisk = 8;                                // !! CHANGE !!  Použití tlačítka ( Led světlo 1 - 1 , Led světlo 2 - 2 , Led světlo 4, RGB - 8 , Relé - 16 )
+const uint8_t Stisk = LED_WHITE2;                   // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
 const bool AmpMeter = false;                        // !! CHANGE !!  Zapnutí měření odběru
 
 const char* WIFI_HOSTNAME = Svetlo.c_str();
@@ -183,30 +182,21 @@ float Teplota;
 float Vlhkost;
 char Pwr[50];
 
-#if (LedType & LED_WHITE1)
 bool led1State = false;
 int led1Brightness = 255;
-#endif
 
-// Pokud je LED2 dostupná
-#if (LedType & LED_WHITE2)
 bool led2State = false;
 int led2Brightness = 255;
-#endif
 
-// Pokud je LED3 dostupná
-#if (LedType & LED_WHITE3)
 bool led3State = false;
 int led3Brightness = 255;
-#endif
 
-// Pokud je RGB LED dostupná
-#if (LedType & LED_RGB)
 bool ledRGBState = false;
 int Red = 254;
 int Green = 254;
 int Blue = 254;
-#endif
+
+bool relayState = false;
 
 int LedL = 254;
 //int Bright = 254;
@@ -229,6 +219,8 @@ void IRAM_ATTR pushInterrupt() {
     } else {
       Zap = 0;                      // Resetovat hodnotu
     }
+    updateZap();
+    ledKontolaZapnuti();
     Rep = !Rep;                     // Přepnout stav tlačítka
   }
   lastInterruptTime = interruptTime;
@@ -285,7 +277,6 @@ void setup() {
     preferences.putInt("CekejDetectClap", 50);
   }
   CekejDetectClap = preferences.getInt("CekejDetectClap", 50);
-
 
   // Načtení uložených hodnot
   String savedServer = preferences.getString("mqtt_server", "");
@@ -367,8 +358,14 @@ void detectClap() {
       // Potenciální druhé tlesknutí
       if (currentTime - lastClapTime <= doubleClapWindow) {
         // Dvojtlesk detekován
-        Zap = !Zap;
+        if (Zap == 0) {
+          Zap = Stisk;              // Nastavit novou hodnotu
+        } else {
+          Zap = 0;                  // Resetovat hodnotu
+        }
         firstClapDetected = false;  // Reset detekce
+        aktivaceZarizeni();         // Aktualizace stavu zařízení
+        Poslat();                   // Odeslání stavu přes MQTT
       } else {
         // Příliš dlouhý interval, považujeme za nový první tlesk
         lastClapTime = currentTime;
@@ -384,7 +381,7 @@ void detectClap() {
 void loop() {
   OZap = Zap;
   if (!IsConnected) {
-    connectToNetwork();     // Po výpadku MQTT se znovu nepřipojí !!
+    connectToNetwork();
   }
   
   client.loop();
@@ -392,73 +389,98 @@ void loop() {
   if (Clap) {
     detectClap();
   }
-  if (OZap != Zap) {
-    aktivaceSvetel();
-    Poslat();
-  }
-  if (Relay) {
-    if (Zap & 16) {
-      digitalWrite(Re, HIGH);
-      ledKontolaZapnuti();
-    } else {
-      digitalWrite(Re, LOW);
-      ledKontolaZapnuti();
-    }
-  }
-  
+  // if (OZap != Zap) {
+  //   aktivaceZarizeni();
+  //   Poslat();
+  // }
+  // if (Relay) {
+  //   if (Zap & 16) {
+  //     digitalWrite(Re, HIGH);
+  //     ledKontolaZapnuti();
+  //   } else {
+  //     digitalWrite(Re, LOW);
+  //     ledKontolaZapnuti();
+  //   }
+  // }  
   // Úprava nstavení jasu kontrolek
   analogWrite(LedPWR, LedL);
-  analogWrite(LedWi, LedL);
-  
+  analogWrite(LedWi, LedL);  
+}
+
+void updateZap() {
+  Zap = 0;
+  if ((DeviceType & LED_WHITE1) && led1State) {
+    Zap |= LED_WHITE1;
+  }
+  if ((DeviceType & LED_WHITE2) && led2State) {
+    Zap |= LED_WHITE2;
+  }
+  if ((DeviceType & LED_WHITE3) && led3State) {
+    Zap |= LED_WHITE3;
+  }
+  if ((DeviceType & LED_RGB) && ledRGBState) {
+    Zap |= LED_RGB;
+  }
+  if ((DeviceType & DEVICE_RELAY) && relayState) {
+    Zap |= DEVICE_RELAY;
+  }
 }
 
 void ledKontolaZapnuti() {
-  if (Zap > 0) {
-    analogWrite(PwrSw, LedL);
-  } else {
+  if (Zap == 0) {
     analogWrite(PwrSw, 0);
+  } else {
+    analogWrite(PwrSw, LedL);
   }
 }
 
-void aktivaceSvetel() {
-    // LED1
-    if (LedType & LED_WHITE1) {
-        if (led1State) {
-            analogWrite(PwrRed, led1Brightness);
-        } else {
-            analogWrite(PwrRed, 0);
-        }
+void aktivaceZarizeni() {
+  // LED1
+  if (DeviceType & LED_WHITE1) {
+    if (led1State) {
+      analogWrite(PwrRed, led1Brightness);
+    } else {
+      analogWrite(PwrRed, 0);
     }
-    // LED2
-    if (LedType & LED_WHITE2) {
-        if (led2State) {
-            analogWrite(PwrGreen, led2Brightness);
-        } else {
-            analogWrite(PwrGreen, 0);
-        }
+  }
+  // LED2
+  if (DeviceType & LED_WHITE2) {
+    if (led2State) {
+      analogWrite(PwrGreen, led2Brightness);
+    } else {
+      analogWrite(PwrGreen, 0);
     }
-    // LED3
-    if (LedType & LED_WHITE3) {
-        if (led3State) {
-            analogWrite(PwrBlue, led3Brightness);
-        } else {
-            analogWrite(PwrBlue, 0);
-        }
+  }
+  // LED3
+  if (DeviceType & LED_WHITE3) {
+    if (led3State) {
+      analogWrite(PwrBlue, led3Brightness);
+    } else {
+      analogWrite(PwrBlue, 0);
     }
-    // RGB LED
-    if (LedType & LED_RGB) {
-        if (ledRGBState) {
-            analogWrite(PwrRed, ledRed);
-            analogWrite(PwrGreen, ledGreen);
-            analogWrite(PwrBlue, ledBlue);
-        } else {
-            // Pokud RGB LED není zapnuta, vypneme její piny
-            analogWrite(PwrRed, 0);
-            analogWrite(PwrGreen, 0);
-            analogWrite(PwrBlue, 0);
-        }
+  }
+  // RGB LED
+  if (DeviceType & LED_RGB) {
+    if (ledRGBState) {
+      analogWrite(PwrRed, Red);
+      analogWrite(PwrGreen, Green);
+      analogWrite(PwrBlue, Blue);
+    } else {
+      // Pokud RGB LED není zapnuta, vypneme její piny
+      analogWrite(PwrRed, 0);
+      analogWrite(PwrGreen, 0);
+      analogWrite(PwrBlue, 0);
     }
-    ledKontolaZapnuti();
+  }
+  if (DeviceType & DEVICE_RELAY) {
+    if (relayState) {
+      digitalWrite(Re, HIGH); // Zapnout relé
+    } else {
+      digitalWrite(Re, LOW);  // Vypnout relé
+    }
+  }
+  updateZap();
+  ledKontolaZapnuti();
 }
 
 void tempAndAmpMeter() {
@@ -546,96 +568,42 @@ void callbackSettingsGet() {
 
 void callbackDevice(JsonDocument& doc) {
 
-  if (doc["on"] != nullptr) {
-    Zap = doc["on"];
+  if (doc.containsKey("led") && doc.containsKey("state")) {
+    String deviceName = doc["led"].as<String>();
+    String state = doc["state"].as<String>();
+    bool isOn = (state == "on");
+
+    if ((deviceName == "LED1") && (DeviceType & LED_WHITE1)) {
+      led1State = isOn;
+      if (doc.containsKey("brightness")) {
+        led1Brightness = doc["brightness"].as<int>();
+      }
+    } else if ((deviceName == "LED2") && (DeviceType & LED_WHITE2)) {
+      led2State = isOn;
+      if (doc.containsKey("brightness")) {
+        led2Brightness = doc["brightness"].as<int>();
+      }
+    } else if ((deviceName == "LED3") && (DeviceType & LED_WHITE3)) {
+      led3State = isOn;
+      if (doc.containsKey("brightness")) {
+        led3Brightness = doc["brightness"].as<int>();
+      }
+    } else if ((deviceName == "RGB") && (DeviceType & LED_RGB)) {
+      ledRGBState = isOn;
+      if (doc.containsKey("spectrumRGB")) {
+        JsonArray rgbValues = doc["spectrumRGB"].as<JsonArray>();
+        if (rgbValues.size() == 3) {
+          Red = rgbValues[0];
+          Green = rgbValues[1];
+          Blue = rgbValues[2];
+        }
+      }
+    } else if ((deviceName == "RELAY") && (DeviceType & DEVICE_RELAY)) {
+      relayState = isOn;
+    }
+    // Aktualizujeme světla podle nového stavu
+    aktivaceZarizeni();
   }
-
-  if (doc["brightArd"] != nullptr) {
-    LedL = doc["brightArd"];
-  }
-
-  switch (Zap) {
-
-    case 1:
-      {
-        Red = doc["brightness"];
-      }
-      break;
-
-    case 2:
-      {
-        Green = doc["brightness"];
-      }
-      break;
-
-    case 3:
-      {
-        if (doc["brightness"][0] != nullptr) {
-          Red = doc["brightness"][0];
-        }
-        if (doc["brightness"][1] != nullptr) {
-          Green = doc["brightness"][1];
-        }
-      }
-      break;
-    
-    case 4:
-      {
-        Blue = doc["brightness"];
-      }
-      break;
-    
-    case 5:
-      {
-        if (doc["brightness"][0] != nullptr) {
-          Red = doc["brightness"][0];
-        }
-        if (doc["brightness"][1] != nullptr) {
-          Blue = doc["brightness"][1];
-        }
-      }
-      break;
-    
-    case 6:
-      {
-        if (doc["brightness"][0] != nullptr) {
-          Green = doc["brightness"][0];
-        }
-        if (doc["brightness"][1] != nullptr) {
-          Blue = doc["brightness"][1];
-        }
-      }
-      break;
-    
-    case 7:
-      {
-        if (doc["brightness"][0] != nullptr) {
-          Red = doc["brightness"][0];
-        }
-        if (doc["brightness"][1] != nullptr) {
-          Green = doc["brightness"][1];
-        }
-        if (doc["brightness"][2] != nullptr) {
-          Blue = doc["brightness"][2];
-        }
-      }
-      break;
-
-    case 8:
-      {
-        if (doc["spectrumRGB"][0] != nullptr) {
-          Red = doc["spectrumRGB"][0];
-        }
-        if (doc["spectrumRGB"][1] != nullptr) {
-          Green = doc["spectrumRGB"][1];
-        }
-        if (doc["spectrumRGB"][2] != nullptr) {
-          Blue = doc["spectrumRGB"][2];
-        }
-      }
-      break;
-  }
-  aktivaceSvetel();
 }
 
 void reconnect() {
@@ -658,61 +626,56 @@ void Poslat() {
   sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
           bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
   doc["bssid"] = bssidStr;
+  
+  // Vytvoříme pole "devices" pouze pokud existují nějaké LED k odeslání
+  JsonArray devices = doc.createNestedArray("devices");
+  
+  // Kontrola a přidání LED1
+  if (DeviceType & LED_WHITE1) {
+    JsonObject led1 = devices.createNestedObject();
+    led1["led"] = "LED1";
+    led1["state"] = led1State ? "on" : "off";
+    led1["brightness"] = led1Brightness;
+  }
 
-  switch (LedType) {
-    case 1:
-      {
-        doc["brightness"] = Red;
-      }
-      break;
-    case 2:
-      {
-        doc["brightness"] = Green;
-      }
-      break;
-    case 3:
-      {
-        JsonArray data = doc.createNestedArray("brightness");
-        data.add(Red);
-        data.add(Green);
-      }
-      break;  
-    case 4:
-      {
-        doc["brightness"] = Blue;
-      }
-      break;
-    case 5:
-      {
-        JsonArray data = doc.createNestedArray("brightness");
-        data.add(Red);
-        data.add(Blue);
-      }
-      break;    
-    case 6:
-      {
-        JsonArray data = doc.createNestedArray("brightness");
-        data.add(Green);
-        data.add(Blue);
-      }
-      break;
-    case 7:
-      {
-        JsonArray data = doc.createNestedArray("brightness");
-        data.add(Green);
-        data.add(Green);
-        data.add(Blue);
-      }
-      break;
-    case 8:
-      {
-        JsonArray data = doc.createNestedArray("spectrumRGB");
-        data.add(Red);
-        data.add(Green);
-        data.add(Blue);
-      }
-      break;
-    }
+  // Kontrola a přidání LED2
+  if (DeviceType & LED_WHITE2) {
+    JsonObject led2 = devices.createNestedObject();
+    led2["led"] = "LED2";
+    led2["state"] = led2State ? "on" : "off";
+    led2["brightness"] = led2Brightness;
+  }
+
+  // Kontrola a přidání LED3
+  if (DeviceType & LED_WHITE3) {
+    JsonObject led3 = devices.createNestedObject();
+    led3["led"] = "LED3";
+    led3["state"] = led3State ? "on" : "off";
+    led3["brightness"] = led3Brightness;
+  }
+
+  // Kontrola a přidání RGB LED
+  if (DeviceType & LED_RGB) {
+    JsonObject ledRGB = devices.createNestedObject();
+    ledRGB["led"] = "RGB";
+    ledRGB["state"] = ledRGBState ? "on" : "off";
+    JsonArray rgbValues = ledRGB.createNestedArray("spectrumRGB");
+    rgbValues.add(Red);
+    rgbValues.add(Green);
+    rgbValues.add(Blue);
+  }
+
+  // Přidání relé
+  if (DeviceType & DEVICE_RELAY) {
+    JsonObject relay = devices.createNestedObject();
+    relay["device"] = "RELAY";
+    relay["state"] = relayState ? "on" : "off";
+  }
+
+  // Pokud pole "devices" je prázdné, odstraníme jej z JSON zprávy
+  if (devices.size() == 0) {
+    doc.remove("devices");
+  }
 
   if (Temp) {
     doc["temp"] = Teplota;
@@ -726,8 +689,7 @@ void Poslat() {
   char out[256];
   int jsonSize = serializeJson(doc, out);
   doc["JSONsize"] = jsonSize;
-  serializeJson(doc, out);
-  
+  serializeJson(doc, out);  
   client.publish(SvetloChr, out);
 }
 
@@ -800,7 +762,6 @@ void resetCalibreData() {
   preferences.clear();
   preferences.end();
 }
-
 
 void printResetReason() {
   esp_reset_reason_t reason = esp_reset_reason();
