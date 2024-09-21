@@ -164,12 +164,11 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 Preferences preferences;
 
-const uint8_t DeviceType = LED_WHITE1 | LED_WHITE2; // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
 const String Svetlo = "Test_Board";                 // !! CHANGE !!  Topic název zařízení
-//const bool Relay = false;                         // !! CHANGE !!  Relé (Zásuvka)
+const uint8_t DeviceType = LED_WHITE1;              // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
+const uint8_t Stisk = LED_WHITE1;                   // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
 const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonu
-const bool Temp = true;                             // !! CHANGE !!  Použití DHT sezoru měření teploty
-const uint8_t Stisk = LED_WHITE2;                   // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
+const bool Temp = false;                            // !! CHANGE !!  Použití DHT sezoru měření teploty
 const bool AmpMeter = false;                        // !! CHANGE !!  Zapnutí měření odběru
 
 const char* WIFI_HOSTNAME = Svetlo.c_str();
@@ -242,14 +241,12 @@ void IRAM_ATTR pushInterrupt() {
   unsigned long interruptTime = millis();
   // Debouncing: ignorovat přerušení, pokud k němu došlo příliš brzy po předchozím
   if (interruptTime - lastInterruptTime > 200) {
-    if (Zap == 0) {
-      Zap = Stisk;                  // Nastavit novou hodnotu
-    } else {
-      Zap = 0;                      // Resetovat hodnotu
-    }
+    changeState();
     updateZap();
+    aktivaceZarizeni();
     ledKontolaZapnuti();
-    Rep = !Rep;                     // Přepnout stav tlačítka
+    Rep = !Rep;  // Přepnout stav tlačítka
+    Poslat();
   }
   lastInterruptTime = interruptTime;
 }
@@ -376,7 +373,6 @@ void setup() {
 void detectClap() {
   int clapValue = analogRead(ClapSensor);
   unsigned long currentTime = millis();
-
   if (clapValue > ClapThreshold) {
     if (!firstClapDetected) {
       // První tlesknutí
@@ -386,11 +382,8 @@ void detectClap() {
       // Potenciální druhé tlesknutí
       if (currentTime - lastClapTime <= doubleClapWindow) {
         // Dvojtlesk detekován
-        if (Zap == 0) {
-          Zap = Stisk;              // Nastavit novou hodnotu
-        } else {
-          Zap = 0;                  // Resetovat hodnotu
-        }
+        changeState();
+        Serial.println("Detekováno kliknutí .. .. .. .. ..");
         firstClapDetected = false;  // Reset detekce
         aktivaceZarizeni();         // Aktualizace stavu zařízení
         Poslat();                   // Odeslání stavu přes MQTT
@@ -410,26 +403,13 @@ void loop() {
   OZap = Zap;
   if (!IsConnected) {
     connectToNetwork();
-  }
-  
+  }  
   client.loop();
-  
+
   if (Clap) {
     detectClap();
   }
-  // if (OZap != Zap) {
-  //   aktivaceZarizeni();
-  //   Poslat();
-  // }
-  // if (Relay) {
-  //   if (Zap & 16) {
-  //     digitalWrite(Re, HIGH);
-  //     ledKontolaZapnuti();
-  //   } else {
-  //     digitalWrite(Re, LOW);
-  //     ledKontolaZapnuti();
-  //   }
-  // }  
+
   // Úprava nstavení jasu kontrolek
   analogWrite(LedPWR, LedL);
   analogWrite(LedWi, LedL);  
@@ -452,6 +432,44 @@ void updateZap() {
   if ((DeviceType & DEVICE_RELAY) && relayState) {
     Zap |= DEVICE_RELAY;
   }
+}
+
+void changeState() {
+  if (Zap == 0) {
+      // Zapnout zařízení podle proměnné Stisk
+      if (Stisk & LED_WHITE1) {
+        led1State = true;
+      }
+      if (Stisk & LED_WHITE2) {
+        led2State = true;
+      }
+      if (Stisk & LED_WHITE3) {
+        led3State = true;
+      }
+      if (Stisk & LED_RGB) {
+        ledRGBState = true;
+      }
+      if (Stisk & DEVICE_RELAY) {
+        relayState = true;
+      }
+    } else {
+      // Vypnout všechna zařízení
+      if (DeviceType & LED_WHITE1) {
+        led1State = false;
+      }
+      if (DeviceType & LED_WHITE2) {
+        led2State = false;
+      }
+      if (DeviceType & LED_WHITE3) {
+        led3State = false;
+      }
+      if (DeviceType & LED_RGB) {
+        ledRGBState = false;
+      }
+      if (DeviceType & DEVICE_RELAY) {
+        relayState = false;
+      }
+    }
 }
 
 void ledKontolaZapnuti() {
