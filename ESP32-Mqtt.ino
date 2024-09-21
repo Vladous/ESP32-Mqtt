@@ -66,22 +66,6 @@
 //
 //
 //
-// JSON callback
-// -------------
-// "on": true,                      // boolean, Určuje, zda se má zařízení zapnout nebo vypnout, true / false
-// "spectrumRGB": [255, 0, 0],      // integer array, Pole tří hodnot, které nastaví barvy v RGB spektru, 0 - 255
-// "brightArd": 128,                // integer, Hodnota jasu LED světla, 0 - 255
-// "brightness": 100,               // integer, Jas kontrolek v procentech, 0 - 100
-// "stav": true,                    // boolean, Indikuje, zda je třeba odeslat aktualizovaný stav zpět, true / false
-//
-// "settings": "set",               // string, Určuje akci, "set" pro nastavení, "get" pro získání nastavení
-//  "ClapThreshold": 10,            // integer, Prah pro detekci tlesknutí
-//  "CekejOdeslat": 5000,           // integer, Časový interval čekání na odeslání
-//  "CekejMereni": 3000,            // integer, Časový interval čekání na měření
-//  "CekejDetectClap": 2000,        // integer, Časový interval čekání na detekci tlesknutí
-//  "KalibrT": 1.23,                // float, Kalibrace teplotního senzoru
-//  "KalibrV": 0.98                 // float, Kalibrace vlhkostního senzoru
-//
 // JSON payload for sending
 // ------------------------
 // "on": true,                      // boolean, Určuje, zda je zařízení zapnuto nebo vypnuto
@@ -102,14 +86,58 @@
 //  "KalibrT": 1.23,                // float, Kalibrace teplotního senzoru
 //  "KalibrV": 0.98                 // float, Kalibrace vlhkostního senzoru
 //
-// "JSONsize": 123                  // integer, Velikost JSON dokumentu
+// JSON callback
+// -------------
+// "device": "DEVICE_NAME",          // string, Název zařízení ("LED1", "LED2", "LED3", "RGB", "RELAY")
+// "state": "on",                    // string, Požadovaný stav zařízení, "on" nebo "off"
+// "brightness": 128,                // integer (volitelně), Hodnota jasu LED světla, 0 - 255
+// "spectrumRGB": [255, 0, 0],       // integer array (volitelně), Pole tří hodnot RGB, 0 - 255
 //
+// "settings": "set",                // string, Určuje akci, "set" pro nastavení, "get" pro získání nastavení
+//  "ClapThreshold": 900,            // integer (volitelně), Prah pro detekci tlesknutí
+//  "CekejOdeslat": 20.0,            // float (volitelně), Časový interval čekání na odeslání (v sekundách)
+//  "CekejMereni": 4.0,              // float (volitelně), Časový interval čekání na měření (v sekundách)
+//  "CekejDetectClap": 50,           // integer (volitelně), Časový interval pro detekci tlesknutí (v milisekundách)
+//  "KalibrT": 1.33,                 // float (volitelně), Kalibrace teplotního senzoru
+//  "KalibrV": 0.70                  // float (volitelně), Kalibrace vlhkostního senzoru
+//
+// JSON payload for sending
+// ------------------------
+// "devices": [                      // array, Pole objektů s informacemi o zařízeních
+//   {
+//     "device": "LED1",             // string, Název zařízení LED1, LED2, LED3
+//     "state": "on",                // string, Stav zařízení "on" nebo "off"
+//     "brightness": 128             // integer (volitelně), Jas zařízení, 0 - 255
+//   },
+//   {
+//     "device": "RGB",
+//     "state": "on",
+//     "spectrumRGB": [255, 0, 0]    // integer array (volitelně), Hodnoty RGB, 0 - 255
+//   },
+//   {
+//     "device": "RELAY",            // string, Název zařízení
+//     "state": "on"                 // string, Stav zařízení "on" nebo "off"
+//   }
+// ],
+// "temp": 21.2,                     // float (volitelně), Naměřená teplota ve stupních Celsia
+// "hum": 54.6,                      // float (volitelně), Naměřená relativní vlhkost v procentech
+// "Amp": 512,                       // integer (volitelně), Naměřená hodnota z ampérmetru
+// "signal": -60,                    // integer, Síla signálu WiFi, RSSI v dBm
+// "bssid": "00:11:22:33:44:55",     // string, MAC adresa WiFi hotspotu
+//
+// "settings": "get",
+//  "ip": "192.168.1.1",             // string, IP adresa zařízení
+//  "host": "ESP_HOST",              // string, Hostname zařízení
+//  "ClapThreshold": 900,            // integer, Prah pro detekci tlesknutí
+//  "CekejOdeslat": 20.0,            // float, Časový interval čekání na odeslání (v sekundách)
+//  "CekejMereni": 4.0,              // float, Časový interval čekání na měření (v sekundách)
+//  "CekejDetectClap": 50,           // integer, Časový interval pro detekci tlesknutí (v milisekundách)
+//  "KalibrT": 1.33,                 // float, Kalibrace teplotního senzoru
+//  "KalibrV": 0.70                  // float, Kalibrace vlhkostního senzoru
 //
 //
 // Přidat mikrotlačítko reset
-// Přidat podmínky boolean na všechna dostupná místa
 //
-
 
 #include <PubSubClient.h>  // https://github.com/knolleary/pubsubclient
 #include <WiFi.h>          // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
@@ -140,7 +168,7 @@ const uint8_t DeviceType = LED_WHITE1 | LED_WHITE2; // !! CHANGE !!  LED_WHITE1 
 const String Svetlo = "Test_Board";                 // !! CHANGE !!  Topic název zařízení
 //const bool Relay = false;                         // !! CHANGE !!  Relé (Zásuvka)
 const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonu
-const bool Temp = false;                            // !! CHANGE !!  Použití DHT sezoru měření teploty
+const bool Temp = true;                             // !! CHANGE !!  Použití DHT sezoru měření teploty
 const uint8_t Stisk = LED_WHITE2;                   // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
 const bool AmpMeter = false;                        // !! CHANGE !!  Zapnutí měření odběru
 
@@ -560,16 +588,15 @@ void callbackSettingsGet() {
     responseDoc["CekejDetectClap"] = CekejDetectClap;
   }
   char responseOut[512];
-  int jsonSize = serializeJson(responseDoc, responseOut);
-  responseDoc["JSONsize"] = jsonSize;
+
   serializeJson(responseDoc, responseOut);
   client.publish(SvetloChr, responseOut);
 }
 
 void callbackDevice(JsonDocument& doc) {
 
-  if (doc.containsKey("led") && doc.containsKey("state")) {
-    String deviceName = doc["led"].as<String>();
+  if (doc.containsKey("device") && doc.containsKey("state")) {
+    String deviceName = doc["device"].as<String>();
     String state = doc["state"].as<String>();
     bool isOn = (state == "on");
 
@@ -615,17 +642,7 @@ void reconnect() {
 void Poslat() {
   reconnect();
   DynamicJsonDocument doc(512);  
-  // Základní informace o zařízení
-  doc["on"] = Zap;
-  doc["signal"] = WiFi.RSSI();
 
-  // Přidání MAC adresy WiFi hotspotu
-  byte bssid[6];
-  WiFi.BSSID(bssid);
-  char bssidStr[18];
-  sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
-          bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
-  doc["bssid"] = bssidStr;
   
   // Vytvoříme pole "devices" pouze pokud existují nějaké LED k odeslání
   JsonArray devices = doc.createNestedArray("devices");
@@ -633,7 +650,7 @@ void Poslat() {
   // Kontrola a přidání LED1
   if (DeviceType & LED_WHITE1) {
     JsonObject led1 = devices.createNestedObject();
-    led1["led"] = "LED1";
+    led1["device"] = "LED1";
     led1["state"] = led1State ? "on" : "off";
     led1["brightness"] = led1Brightness;
   }
@@ -641,7 +658,7 @@ void Poslat() {
   // Kontrola a přidání LED2
   if (DeviceType & LED_WHITE2) {
     JsonObject led2 = devices.createNestedObject();
-    led2["led"] = "LED2";
+    led2["device"] = "LED2";
     led2["state"] = led2State ? "on" : "off";
     led2["brightness"] = led2Brightness;
   }
@@ -649,7 +666,7 @@ void Poslat() {
   // Kontrola a přidání LED3
   if (DeviceType & LED_WHITE3) {
     JsonObject led3 = devices.createNestedObject();
-    led3["led"] = "LED3";
+    led3["device"] = "LED3";
     led3["state"] = led3State ? "on" : "off";
     led3["brightness"] = led3Brightness;
   }
@@ -657,7 +674,7 @@ void Poslat() {
   // Kontrola a přidání RGB LED
   if (DeviceType & LED_RGB) {
     JsonObject ledRGB = devices.createNestedObject();
-    ledRGB["led"] = "RGB";
+    ledRGB["device"] = "RGB";
     ledRGB["state"] = ledRGBState ? "on" : "off";
     JsonArray rgbValues = ledRGB.createNestedArray("spectrumRGB");
     rgbValues.add(Red);
@@ -686,9 +703,18 @@ void Poslat() {
     doc["Amp"] = PwrAmp;
   }
 
+  // Základní informace o zařízení
+  doc["signal"] = WiFi.RSSI();
+  // Přidání MAC adresy WiFi hotspotu
+  byte bssid[6];
+  WiFi.BSSID(bssid);
+  char bssidStr[18];
+  sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
+          bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+  doc["bssid"] = bssidStr;
+
   char out[256];
-  int jsonSize = serializeJson(doc, out);
-  doc["JSONsize"] = jsonSize;
+
   serializeJson(doc, out);  
   client.publish(SvetloChr, out);
 }
