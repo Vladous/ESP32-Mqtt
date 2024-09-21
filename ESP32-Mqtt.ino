@@ -612,7 +612,9 @@ void callbackSettingsGet() {
 }
 
 void callbackDevice(JsonDocument& doc) {
-
+  if (doc["brightArd"] != nullptr) {
+      LedL = doc["brightArd"];
+    }
   if (doc.containsKey("device") && doc.containsKey("state")) {
     String deviceName = doc["device"].as<String>();
     String state = doc["state"].as<String>();
