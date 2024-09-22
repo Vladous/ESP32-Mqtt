@@ -165,8 +165,8 @@ PubSubClient client(espClient);
 Preferences preferences;
 
 const String Svetlo = "Test_Board";                 // !! CHANGE !!  Topic název zařízení
-const uint8_t DeviceType = LED_WHITE1;              // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
-const uint8_t Stisk = LED_WHITE1;                   // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
+const uint8_t DeviceType = LED_RGB;                 // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
+const uint8_t Stisk = LED_RGB;                      // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
 const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonu
 const bool Temp = false;                            // !! CHANGE !!  Použití DHT sezoru měření teploty
 const bool AmpMeter = false;                        // !! CHANGE !!  Zapnutí měření odběru
@@ -741,14 +741,20 @@ void Poslat() {
 
 void senzorTemp() {
   float t = dht.readTemperature();
-  Teplota = (Teplota + t / KalibrT) / 2;
+  if (!isnan(t)) {
+      Teplota = (Teplota + t / KalibrT) / 2;
+    }
   float h = dht.readHumidity();
-  Vlhkost = (Vlhkost + h / KalibrV) / 2;
+  if (!isnan(h)) {
+      Vlhkost = (Vlhkost + h / KalibrV) / 2;
+    }
 }
 
 void measureAmp() {  // Měření hodnoty z ampermetru
-  PwrAmp = (PwrAmp + analogRead(AmpPin)) / 2;
-  delay(10);
+  float a = analogRead(AmpPin);
+  if (!isnan(a)) {
+      PwrAmp = (PwrAmp + a) / 2;
+    }
 }
 
 void connectToNetwork() {
