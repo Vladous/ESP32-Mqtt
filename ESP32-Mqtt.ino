@@ -145,7 +145,7 @@
 #include <ArduinoJson.h>   // https://github.com/bblanchon/ArduinoJson
 #include <DHT.h>           // https://github.com/adafruit/DHT-sensor-library
 #include <Preferences.h>   // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
-#include <Ticker.h>        // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
+//#include <Ticker.h>        // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
 #include <esp_system.h>    // Dočasné testování příčiny restartu
 
 #define DHTTYPE DHT11              // Typ DHT sezoru teploty a vlhkosti
@@ -197,16 +197,19 @@ int ClapThreshold = 900;            // Nastavitelná hladina detekce tlesknutí
 float CekejOdeslat = 20.0f;         // Prodleva mezi odesláním naměřených hodnot
 float CekejMereni = 4.0f;           // Prodleva mezi měřením DHT
 int CekejDetectClap = 50;           // Prodleva mezi detekcí tlesknutí
+
+unsigned long lastReadTime = 0;
+unsigned long lastPoslatTime = 0;
+bool toggleSensor = false;
+
 long LastMsg = 0;
 int Value = 0;
 char SvetloChr[50];
-// bool Tlac;
 String Zap_str;
-volatile bool Rep;
 volatile int OZap;                  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
 volatile int Zap;                   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
-float Teplota;
-float Vlhkost;
+volatile float Teplota;
+volatile float Vlhkost;
 char Pwr[50];
 
 bool led1State = false;
@@ -234,7 +237,7 @@ bool IsConnected = false;
 unsigned long lastClapTime = 0;
 bool firstClapDetected = false;
 const unsigned long doubleClapWindow = 500;
-Ticker TimerOdeslat, TimerMereni;
+//Ticker TimerOdeslat, TimerMereni;
 
 void IRAM_ATTR pushInterrupt() {
   static unsigned long lastInterruptTime = 0;
@@ -245,7 +248,6 @@ void IRAM_ATTR pushInterrupt() {
     updateZap();
     aktivaceZarizeni();
     ledKontolaZapnuti();
-    Rep = !Rep;  // Přepnout stav tlačítka
     Poslat();
   }
   lastInterruptTime = interruptTime;
@@ -364,10 +366,6 @@ void setup() {
   connectToNetwork();  // Volání nové funkce pro připojení k nastavené WiFi a MQTT
   Serial.println("Moje IP adresa je:");
   Serial.println(WiFi.localIP());
-  if (Temp or AmpMeter) {  // Pokud je zapnuto měřění teploty, nebo ampermetr aktivuj timer
-    TimerMereni.attach(CekejMereni, tempAndAmpMeter);
-  }
-  TimerOdeslat.attach(CekejOdeslat, Poslat);
 }
 
 void detectClap() {
@@ -400,6 +398,7 @@ void detectClap() {
 }
 
 void loop() {
+  unsigned long currentMillis = millis();
   OZap = Zap;
   if (!IsConnected) {
     connectToNetwork();
@@ -408,6 +407,25 @@ void loop() {
 
   if (Clap) {
     detectClap();
+  }
+
+  if (currentMillis - lastReadTime >= (CekejMereni * 500)) {
+    lastReadTime = currentMillis;
+    if (toggleSensor) {
+      if (Temp) {
+        senzorTemp();             // Čtení ze senzoru teploty a vlhkosti
+      }
+    } else {
+      if (AmpMeter) {
+        measureAmp();             // Čtení z ampérmetru
+      }
+    }
+    toggleSensor = !toggleSensor; // Přepnutí stavu pro příští volání
+  }
+
+  if (currentMillis - lastPoslatTime >= (CekejOdeslat * 1000)) {
+    lastPoslatTime = currentMillis;
+    Poslat();                     // Odeslat do MQTT
   }
 
   // Úprava nstavení jasu kontrolek
@@ -527,15 +545,6 @@ void aktivaceZarizeni() {
   }
   updateZap();
   ledKontolaZapnuti();
-}
-
-void tempAndAmpMeter() {
-  if (Temp) {
-    senzorTemp();  // Načtení hodnoty ze seznoru DHT
-  }
-  if (AmpMeter) {
-    measureAmp();  // Načtení hodnoty Ampermetru
-  }
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
