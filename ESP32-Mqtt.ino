@@ -143,9 +143,9 @@
 #include <WiFi.h>          // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
 #include <WiFiManager.h>   // https://github.com/tzapu/WiFiManager
 #include <ArduinoJson.h>   // https://github.com/bblanchon/ArduinoJson
-#include <DHTesp.h>        // https://github.com/adafruit/DHT-sensor-library
+#include <DHT.h>           // https://github.com/adafruit/DHT-sensor-library
 #include <Preferences.h>   // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
-#include <Ticker.h>        // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
+//#include <Ticker.h>        // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
 #include <esp_system.h>    // Dočasné testování příčiny restartu
 
 #define DHTTYPE DHT11              // Typ DHT sezoru teploty a vlhkosti
@@ -158,7 +158,7 @@
 #define DEVICE_RELAY  0x10
 
 uint8_t DHTPin = 3;                // Nastavení datového pinu DHT
-DHTesp dht;                        // Inicializace DHT senzoru
+DHT dht(DHTPin, DHTTYPE);          // Inicializace DHT senzoru
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -168,7 +168,7 @@ const String Svetlo = "Test_Board";                 // !! CHANGE !!  Topic náze
 const uint8_t DeviceType = LED_RGB;                 // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
 const uint8_t Stisk = LED_RGB;                      // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
 const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonu
-const bool Temp = true;                             // !! CHANGE !!  Použití DHT sezoru měření teploty
+const bool Temp = false;                            // !! CHANGE !!  Použití DHT sezoru měření teploty
 const bool AmpMeter = false;                        // !! CHANGE !!  Zapnutí měření odběru
 
 const char* WIFI_HOSTNAME = Svetlo.c_str();
@@ -197,16 +197,19 @@ int ClapThreshold = 900;            // Nastavitelná hladina detekce tlesknutí
 float CekejOdeslat = 20.0f;         // Prodleva mezi odesláním naměřených hodnot
 float CekejMereni = 4.0f;           // Prodleva mezi měřením DHT
 int CekejDetectClap = 50;           // Prodleva mezi detekcí tlesknutí
+
+unsigned long lastReadTime = 0;
+unsigned long lastPoslatTime = 0;
+bool toggleSensor = false;
+
 long LastMsg = 0;
 int Value = 0;
 char SvetloChr[50];
-// bool Tlac;
 String Zap_str;
-volatile bool Rep;
 volatile int OZap;                  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
 volatile int Zap;                   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
-float Teplota;
-float Vlhkost;
+volatile float Teplota;
+volatile float Vlhkost;
 char Pwr[50];
 
 bool led1State = false;
@@ -234,7 +237,7 @@ bool IsConnected = false;
 unsigned long lastClapTime = 0;
 bool firstClapDetected = false;
 const unsigned long doubleClapWindow = 500;
-Ticker TimerOdeslat, TimerMereni;
+//Ticker TimerOdeslat, TimerMereni;
 
 void IRAM_ATTR pushInterrupt() {
   static unsigned long lastInterruptTime = 0;
@@ -245,7 +248,6 @@ void IRAM_ATTR pushInterrupt() {
     updateZap();
     aktivaceZarizeni();
     ledKontolaZapnuti();
-    Rep = !Rep;  // Přepnout stav tlačítka
     Poslat();
   }
   lastInterruptTime = interruptTime;
@@ -268,7 +270,7 @@ void setup() {
   delay(1500);
   printResetReason();     // Dočasné testování příčiny restartu
   if (Temp) {
-    dht.setup(DHTPin, DHTesp::DHT11);
+    dht.begin();
   }
   preferences.begin(PREF_NAMESPACE, false);
 
@@ -364,10 +366,6 @@ void setup() {
   connectToNetwork();  // Volání nové funkce pro připojení k nastavené WiFi a MQTT
   Serial.println("Moje IP adresa je:");
   Serial.println(WiFi.localIP());
-  if (Temp or AmpMeter) {  // Pokud je zapnuto měřění teploty, nebo ampermetr aktivuj timer
-    TimerMereni.attach(CekejMereni, tempAndAmpMeter);
-  }
-  TimerOdeslat.attach(CekejOdeslat, Poslat);
 }
 
 void detectClap() {
@@ -400,6 +398,7 @@ void detectClap() {
 }
 
 void loop() {
+  unsigned long currentMillis = millis();
   OZap = Zap;
   if (!IsConnected) {
     connectToNetwork();
@@ -408,6 +407,25 @@ void loop() {
 
   if (Clap) {
     detectClap();
+  }
+
+  if (currentMillis - lastReadTime >= (CekejMereni * 500)) {
+    lastReadTime = currentMillis;
+    if (toggleSensor) {
+      if (Temp) {
+        senzorTemp();             // Čtení ze senzoru teploty a vlhkosti
+      }
+    } else {
+      if (AmpMeter) {
+        measureAmp();             // Čtení z ampérmetru
+      }
+    }
+    toggleSensor = !toggleSensor; // Přepnutí stavu pro příští volání
+  }
+
+  if (currentMillis - lastPoslatTime >= (CekejOdeslat * 1000)) {
+    lastPoslatTime = currentMillis;
+    Poslat();                     // Odeslat do MQTT
   }
 
   // Úprava nstavení jasu kontrolek
@@ -527,15 +545,6 @@ void aktivaceZarizeni() {
   }
   updateZap();
   ledKontolaZapnuti();
-}
-
-void tempAndAmpMeter() {
-  if (Temp) {
-    senzorTemp();  // Načtení hodnoty ze seznoru DHT
-  }
-  if (AmpMeter) {
-    measureAmp();  // Načtení hodnoty Ampermetru
-  }
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -737,20 +746,16 @@ void Poslat() {
 
   serializeJson(doc, out);  
   client.publish(SvetloChr, out);
-
-  // #include <Arduino.h>
-        float teplotaCipu = temperatureRead();
-        Serial.print("Teplota čipu: ");
-        Serial.print(teplotaCipu);
-        Serial.println(" °C");
-
 }
 
 void senzorTemp() {
-  TempAndHumidity newValues = dht.getTempAndHumidity();
-  if (!isnan(newValues.temperature) && !isnan(newValues.humidity)) {
-      Teplota = (Teplota + newValues.temperature / KalibrT) / 2;
-      Vlhkost = (Vlhkost + newValues.humidity / KalibrV) / 2;
+  float t = dht.readTemperature();
+  if (!isnan(t)) {
+      Teplota = (Teplota + t / KalibrT) / 2;
+    }
+  float h = dht.readHumidity();
+  if (!isnan(h)) {
+      Vlhkost = (Vlhkost + h / KalibrV) / 2;
     }
 }
 
