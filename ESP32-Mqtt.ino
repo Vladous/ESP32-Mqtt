@@ -143,7 +143,7 @@
 #include <WiFi.h>          // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
 #include <WiFiManager.h>   // https://github.com/tzapu/WiFiManager
 #include <ArduinoJson.h>   // https://github.com/bblanchon/ArduinoJson
-#include <DHT.h>           // https://github.com/adafruit/DHT-sensor-library
+#include <DHTesp.h>        // https://github.com/adafruit/DHT-sensor-library
 #include <Preferences.h>   // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
 #include <Ticker.h>        // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
 #include <esp_system.h>    // Dočasné testování příčiny restartu
@@ -158,7 +158,7 @@
 #define DEVICE_RELAY  0x10
 
 uint8_t DHTPin = 3;                // Nastavení datového pinu DHT
-DHT dht(DHTPin, DHTTYPE);          // Inicializace DHT senzoru
+DHTesp dht;                        // Inicializace DHT senzoru
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -168,7 +168,7 @@ const String Svetlo = "Test_Board";                 // !! CHANGE !!  Topic náze
 const uint8_t DeviceType = LED_RGB;                 // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
 const uint8_t Stisk = LED_RGB;                      // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
 const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonu
-const bool Temp = false;                            // !! CHANGE !!  Použití DHT sezoru měření teploty
+const bool Temp = true;                             // !! CHANGE !!  Použití DHT sezoru měření teploty
 const bool AmpMeter = false;                        // !! CHANGE !!  Zapnutí měření odběru
 
 const char* WIFI_HOSTNAME = Svetlo.c_str();
@@ -268,7 +268,7 @@ void setup() {
   delay(1500);
   printResetReason();     // Dočasné testování příčiny restartu
   if (Temp) {
-    dht.begin();
+    dht.setup(DHTPin, DHTesp::DHT11);
   }
   preferences.begin(PREF_NAMESPACE, false);
 
@@ -737,16 +737,20 @@ void Poslat() {
 
   serializeJson(doc, out);  
   client.publish(SvetloChr, out);
+
+  // #include <Arduino.h>
+        float teplotaCipu = temperatureRead();
+        Serial.print("Teplota čipu: ");
+        Serial.print(teplotaCipu);
+        Serial.println(" °C");
+
 }
 
 void senzorTemp() {
-  float t = dht.readTemperature();
-  if (!isnan(t)) {
-      Teplota = (Teplota + t / KalibrT) / 2;
-    }
-  float h = dht.readHumidity();
-  if (!isnan(h)) {
-      Vlhkost = (Vlhkost + h / KalibrV) / 2;
+  TempAndHumidity newValues = dht.getTempAndHumidity();
+  if (!isnan(newValues.temperature) && !isnan(newValues.humidity)) {
+      Teplota = (Teplota + newValues.temperature / KalibrT) / 2;
+      Vlhkost = (Vlhkost + newValues.humidity / KalibrV) / 2;
     }
 }
 
