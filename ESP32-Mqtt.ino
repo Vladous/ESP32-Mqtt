@@ -412,7 +412,10 @@ void loop() {
 
   // Úprava nstavení jasu kontrolek
   analogWrite(LedPWR, LedL);
-  analogWrite(LedWi, LedL);  
+  analogWrite(LedWi, LedL);
+  if (Zap > 0) {
+    analogWrite(PwrSw, LedL);
+  }  
 }
 
 void updateZap() {
@@ -738,11 +741,10 @@ void Poslat() {
   serializeJson(doc, out);  
   client.publish(SvetloChr, out);
 
-  // #include <Arduino.h>
-        float teplotaCipu = temperatureRead();
-        Serial.print("Teplota čipu: ");
-        Serial.print(teplotaCipu);
-        Serial.println(" °C");
+  float teplotaCipu = temperatureRead();
+  Serial.print("Teplota čipu: ");
+  Serial.print(teplotaCipu);
+  Serial.println(" °C");
 
 }
 
