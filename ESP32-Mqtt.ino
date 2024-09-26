@@ -134,9 +134,12 @@
 //  "CekejDetectClap": 50,           // integer, Časový interval pro detekci tlesknutí (v milisekundách)
 //  "KalibrT": 1.33,                 // float, Kalibrace teplotního senzoru
 //  "KalibrV": 0.70                  // float, Kalibrace vlhkostního senzoru
+//  "TeplotaChip" : 50               // float, Teplota čipu ESP ve °C
 //
 //
 // Přidat mikrotlačítko reset
+// Mikrofon použít na pin 34
+// Odpor pro mikrofon 2,2 kΩ
 //
 
 #include <PubSubClient.h>  // https://github.com/knolleary/pubsubclient
@@ -148,7 +151,6 @@
 #include <Ticker.h>        // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
 #include <esp_system.h>    // Dočasné testování příčiny restartu
 
-#define DHTTYPE DHT11              // Typ DHT sezoru teploty a vlhkosti
 #define PREF_NAMESPACE "mqtt-app"  // Jmenný prostor EEPROM
 
 #define LED_WHITE1    0x01
@@ -167,7 +169,7 @@ Preferences preferences;
 const String Svetlo = "Test_Board";                 // !! CHANGE !!  Topic název zařízení
 const uint8_t DeviceType = LED_RGB;                 // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
 const uint8_t Stisk = LED_RGB;                      // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
-const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonu
+const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonuDHTTYPE
 const bool Temp = true;                             // !! CHANGE !!  Použití DHT sezoru měření teploty
 const bool AmpMeter = false;                        // !! CHANGE !!  Zapnutí měření odběru
 
@@ -197,36 +199,27 @@ int ClapThreshold = 900;            // Nastavitelná hladina detekce tlesknutí
 float CekejOdeslat = 20.0f;         // Prodleva mezi odesláním naměřených hodnot
 float CekejMereni = 4.0f;           // Prodleva mezi měřením DHT
 int CekejDetectClap = 50;           // Prodleva mezi detekcí tlesknutí
-long LastMsg = 0;
 int Value = 0;
 char SvetloChr[50];
-// bool Tlac;
-String Zap_str;
-volatile bool Rep;
 volatile int OZap;                  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
 volatile int Zap;                   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
 float Teplota;
 float Vlhkost;
 char Pwr[50];
-
-bool led1State = false;
+// Definice zařízení
+bool led1State = false;             // Led svělto 1
 int led1Brightness = 255;
-
-bool led2State = false;
+bool led2State = false;             // Led světlo 2
 int led2Brightness = 255;
-
-bool led3State = false;
+bool led3State = false;             // Led světlo 3
 int led3Brightness = 255;
-
-bool ledRGBState = false;
+bool ledRGBState = false;           // Led světlo RGB
 int Red = 254;
 int Green = 254;
 int Blue = 254;
-
-bool relayState = false;
-
+bool relayState = false;            // Relé
+bool PoslatOnOff = false;
 int LedL = 254;
-//int Bright = 254;
 double KalibrT = 1.33;
 double KalibrV = 0.70;
 int PwrAmp;
@@ -245,8 +238,7 @@ void IRAM_ATTR pushInterrupt() {
     updateZap();
     aktivaceZarizeni();
     ledKontolaZapnuti();
-    Rep = !Rep;  // Přepnout stav tlačítka
-    Poslat();
+    PoslatOnOff = true;
   }
   lastInterruptTime = interruptTime;
 }
@@ -405,11 +397,13 @@ void loop() {
     connectToNetwork();
   }  
   client.loop();
-
   if (Clap) {
     detectClap();
   }
-
+  if (PoslatOnOff) {
+    Poslat();
+    PoslatOnOff = false;
+  }
   // Úprava nstavení jasu kontrolek
   analogWrite(LedPWR, LedL);
   analogWrite(LedWi, LedL);
@@ -608,6 +602,9 @@ void callbackSettingsGet() {
     responseDoc["ClapThreshold"] = ClapThreshold;
     responseDoc["CekejDetectClap"] = CekejDetectClap;
   }
+  float teplotaCipu = temperatureRead();
+  responseDoc["TeplotaChip"] = teplotaCipu;
+
   char responseOut[512];
 
   serializeJson(responseDoc, responseOut);
@@ -741,10 +738,10 @@ void Poslat() {
   serializeJson(doc, out);  
   client.publish(SvetloChr, out);
 
-  float teplotaCipu = temperatureRead();
-  Serial.print("Teplota čipu: ");
-  Serial.print(teplotaCipu);
-  Serial.println(" °C");
+  // float teplotaCipu = temperatureRead();
+  // Serial.print("Teplota čipu: ");
+  // Serial.print(teplotaCipu);
+  // Serial.println(" °C");
 
 }
 
