@@ -17,6 +17,7 @@
 //                  Úprava velikosti JSON výstupu
 // v3.0 21.08.2023 Úprava na ESP32 Deneyap Mini
 //                  Rozdělení světel a relé
+// v3.1.28.09.2024 Změna knihovny DHT na ESP32
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -68,88 +69,88 @@
 //
 // JSON payload for sending
 // ------------------------
-// "on": true,                      // boolean, Určuje, zda je zařízení zapnuto nebo vypnuto
-// "signal": -60,                   // integer, Síla signálu WiFi, RSSI v dBm
-// "bssid": "00:11:22:33:44:55",    // string, MAC adresa WiFi hotspotu
-// "brightness": 100,               // integer, Jas kontrolek v procentech (0-100)
-// "spectrumRGB": [255, 0, 0],      // integer array, Pole tří hodnot, které reprezentují barvy v RGB spektru (0 - 255)
-// "temp": 21.2,                    // float, Naměřená teplota ve stupních Celsia
-// "hum": 54.6,                     // float, Naměřená relativní vlhkost v procentech
+// "on": true,                     // boolean, Určuje, zda je zařízení zapnuto nebo vypnuto
+// "signal": -60,                  // integer, Síla signálu WiFi, RSSI v dBm
+// "bssid": "00:11:22:33:44:55",   // string, MAC adresa WiFi hotspotu
+// "brightness": 100,              // integer, Jas kontrolek v procentech (0-100)
+// "spectrumRGB": [255, 0, 0],     // integer array, Pole tří hodnot, které reprezentují barvy v RGB spektru (0 - 255)
+// "temp": 21.2,                   // float, Naměřená teplota ve stupních Celsia
+// "hum": 54.6,                    // float, Naměřená relativní vlhkost v procentech
 //
 // "settings": "get",
-//  "ip": "192.168.1.1"             // string, IP adresa zařízení
-//  "host": "ESP_HOST"              // string, Hostname zařízení
-//  "ClapThreshold": 10,            // integer, Prah pro detekci tlesknutí
-//  "CekejOdeslat": 5000,           // integer, Časový interval čekání na odeslání
-//  "CekejMereni": 3000,            // integer, Časový interval čekání na měření
-//  "CekejDetectClap": 2000,        // integer, Časový interval čekání na detekci tlesknutí
-//  "KalibrT": 1.23,                // float, Kalibrace teplotního senzoru
-//  "KalibrV": 0.98                 // float, Kalibrace vlhkostního senzoru
+//  "ip": "192.168.1.1"            // string, IP adresa zařízení
+//  "host": "ESP_HOST"             // string, Hostname zařízení
+//  "ClapThreshold": 10,           // integer, Prah pro detekci tlesknutí
+//  "CekejOdeslat": 5000,          // integer, Časový interval čekání na odeslání
+//  "CekejMereni": 3000,           // integer, Časový interval čekání na měření
+//  "CekejDetectClap": 2000,       // integer, Časový interval čekání na detekci tlesknutí
+//  "KalibrT": 1.23,               // float, Kalibrace teplotního senzoru
+//  "KalibrV": 0.98                // float, Kalibrace vlhkostního senzoru
 //
 // JSON callback
 // -------------
-// "device": "DEVICE_NAME",          // string, Název zařízení ("LED1", "LED2", "LED3", "RGB", "RELAY")
-// "state": "on",                    // string, Požadovaný stav zařízení, "on" nebo "off"
-// "brightness": 128,                // integer (volitelně), Hodnota jasu LED světla, 0 - 255
-// "spectrumRGB": [255, 0, 0],       // integer array (volitelně), Pole tří hodnot RGB, 0 - 255
+// "device": "DEVICE_NAME",        // string, Název zařízení ("LED1", "LED2", "LED3", "RGB", "RELAY")
+// "state": "on",                  // string, Požadovaný stav zařízení, "on" nebo "off"
+// "brightness": 128,              // integer (volitelně), Hodnota jasu LED světla, 0 - 255
+// "spectrumRGB": [255, 0, 0],     // integer array (volitelně), Pole tří hodnot RGB, 0 - 255
 //
-// "settings": "set",                // string, Určuje akci, "set" pro nastavení, "get" pro získání nastavení
-//  "ClapThreshold": 900,            // integer (volitelně), Prah pro detekci tlesknutí
-//  "CekejOdeslat": 20.0,            // float (volitelně), Časový interval čekání na odeslání (v sekundách)
-//  "CekejMereni": 4.0,              // float (volitelně), Časový interval čekání na měření (v sekundách)
-//  "CekejDetectClap": 50,           // integer (volitelně), Časový interval pro detekci tlesknutí (v milisekundách)
-//  "KalibrT": 1.33,                 // float (volitelně), Kalibrace teplotního senzoru
-//  "KalibrV": 0.70                  // float (volitelně), Kalibrace vlhkostního senzoru
+// "settings": "set",              // string, Určuje akci, "set" pro nastavení, "get" pro získání nastavení
+//  "ClapThreshold": 900,          // integer (volitelně), Prah pro detekci tlesknutí
+//  "CekejOdeslat": 20.0,          // float (volitelně), Časový interval čekání na odeslání (v sekundách)
+//  "CekejMereni": 4.0,            // float (volitelně), Časový interval čekání na měření (v sekundách)
+//  "CekejDetectClap": 50,         // integer (volitelně), Časový interval pro detekci tlesknutí (v milisekundách)
+//  "KalibrT": 1.33,               // float (volitelně), Kalibrace teplotního senzoru
+//  "KalibrV": 0.70                // float (volitelně), Kalibrace vlhkostního senzoru
 //
 // JSON payload for sending
 // ------------------------
-// "devices": [                      // array, Pole objektů s informacemi o zařízeních
+// "devices": [                    // array, Pole objektů s informacemi o zařízeních
 //   {
-//     "device": "LED1",             // string, Název zařízení LED1, LED2, LED3
-//     "state": "on",                // string, Stav zařízení "on" nebo "off"
-//     "brightness": 128             // integer (volitelně), Jas zařízení, 0 - 255
+//     "device": "LED1",           // string, Název zařízení LED1, LED2, LED3
+//     "state": "on",              // string, Stav zařízení "on" nebo "off"
+//     "brightness": 128           // integer (volitelně), Jas zařízení, 0 - 255
 //   },
 //   {
 //     "device": "RGB",
 //     "state": "on",
-//     "spectrumRGB": [255, 0, 0]    // integer array (volitelně), Hodnoty RGB, 0 - 255
+//     "spectrumRGB": [255, 0, 0]  // integer array (volitelně), Hodnoty RGB, 0 - 255
 //   },
 //   {
-//     "device": "RELAY",            // string, Název zařízení
-//     "state": "on"                 // string, Stav zařízení "on" nebo "off"
+//     "device": "RELAY",          // string, Název zařízení
+//     "state": "on"               // string, Stav zařízení "on" nebo "off"
 //   }
 // ],
-// "temp": 21.2,                     // float (volitelně), Naměřená teplota ve stupních Celsia
-// "hum": 54.6,                      // float (volitelně), Naměřená relativní vlhkost v procentech
-// "Amp": 512,                       // integer (volitelně), Naměřená hodnota z ampérmetru
-// "signal": -60,                    // integer, Síla signálu WiFi, RSSI v dBm
-// "bssid": "00:11:22:33:44:55",     // string, MAC adresa WiFi hotspotu
+// "temp": 21.2,                   // float (volitelně), Naměřená teplota ve stupních Celsia
+// "hum": 54.6,                    // float (volitelně), Naměřená relativní vlhkost v procentech
+// "Amp": 512,                     // integer (volitelně), Naměřená hodnota z ampérmetru
+// "signal": -60,                  // integer, Síla signálu WiFi, RSSI v dBm
+// "bssid": "00:11:22:33:44:55",   // string, MAC adresa WiFi hotspotu
 //
 // "settings": "get",
-//  "ip": "192.168.1.1",             // string, IP adresa zařízení
-//  "host": "ESP_HOST",              // string, Hostname zařízení
-//  "ClapThreshold": 900,            // integer, Prah pro detekci tlesknutí
-//  "CekejOdeslat": 20.0,            // float, Časový interval čekání na odeslání (v sekundách)
-//  "CekejMereni": 4.0,              // float, Časový interval čekání na měření (v sekundách)
-//  "CekejDetectClap": 50,           // integer, Časový interval pro detekci tlesknutí (v milisekundách)
-//  "KalibrT": 1.33,                 // float, Kalibrace teplotního senzoru
-//  "KalibrV": 0.70                  // float, Kalibrace vlhkostního senzoru
-//  "TeplotaChip" : 50               // float, Teplota čipu ESP ve °C
+//  "ip": "192.168.1.1",           // string, IP adresa zařízení
+//  "host": "ESP_HOST",            // string, Hostname zařízení
+//  "ClapThreshold": 900,          // integer, Prah pro detekci tlesknutí
+//  "CekejOdeslat": 20.0,          // float, Časový interval čekání na odeslání (v sekundách)
+//  "CekejMereni": 4.0,            // float, Časový interval čekání na měření (v sekundách)
+//  "CekejDetectClap": 50,         // integer, Časový interval pro detekci tlesknutí (v milisekundách)
+//  "KalibrT": 1.33,               // float, Kalibrace teplotního senzoru
+//  "KalibrV": 0.70                // float, Kalibrace vlhkostního senzoru
+//  "TeplotaChip" : 50             // float, Teplota čipu ESP ve °C
 //
 //
 // Přidat mikrotlačítko reset
 // Mikrofon použít na pin 34
-// Odpor pro mikrofon 2,2 kΩ
+// Odpor pro mikrofon 15kΩ (2,2kΩ)
 //
 
-#include <PubSubClient.h>  // https://github.com/knolleary/pubsubclient
-#include <WiFi.h>          // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
-#include <WiFiManager.h>   // https://github.com/tzapu/WiFiManager
-#include <ArduinoJson.h>   // https://github.com/bblanchon/ArduinoJson
-#include <DHTesp.h>        // https://github.com/adafruit/DHT-sensor-library
-#include <Preferences.h>   // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
-#include <Ticker.h>        // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
-#include <esp_system.h>    // Dočasné testování příčiny restartu
+#include <PubSubClient.h>          // https://github.com/knolleary/pubsubclient
+#include <WiFi.h>                  // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
+#include <WiFiManager.h>           // https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>           // https://github.com/bblanchon/ArduinoJson
+#include <DHTesp.h>                // https://github.com/adafruit/DHT-sensor-library
+#include <Preferences.h>           // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
+#include <Ticker.h>                // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
+#include <esp_system.h>            // Dočasné testování příčiny restartu
 
 #define PREF_NAMESPACE "mqtt-app"  // Jmenný prostor EEPROM
 
@@ -166,12 +167,13 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 Preferences preferences;
 
-const String Svetlo = "Test_Board";                 // !! CHANGE !!  Topic název zařízení
-const uint8_t DeviceType = LED_RGB;                 // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
-const uint8_t Stisk = LED_RGB;                      // !! CHANGE !!  Použití tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
-const bool Clap = false;                            // !! CHANGE !!  Použití mikrofonuDHTTYPE
-const bool Temp = true;                             // !! CHANGE !!  Použití DHT sezoru měření teploty
-const bool AmpMeter = false;                        // !! CHANGE !!  Zapnutí měření odběru
+const String Svetlo = "Test_Board"; // !! CHANGE !!  Topic název zařízení
+const uint8_t DeviceType = LED_RGB; // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
+const bool Tlac = true;             // !! CHANGE !!  Použití tlačítka
+const uint8_t Stisk = LED_RGB;      // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
+const bool Clap = false;            // !! CHANGE !!  Použití mikrofonuDHTTYPE
+const bool Temp = true;             // !! CHANGE !!  Použití DHT sezoru měření teploty
+const bool AmpMeter = false;        // !! CHANGE !!  Zapnutí měření odběru
 
 const char* WIFI_HOSTNAME = Svetlo.c_str();
 char ssid[32];                      // Proměnná pro SSID
@@ -244,7 +246,6 @@ void IRAM_ATTR pushInterrupt() {
 }
 
 void setup() {
-  pinMode(Sw, INPUT_PULLUP);                                           // PullUp výstup nastavení pinu pro Tlačítko
   pinMode(LedPWR, OUTPUT);                                             // Výstup nastavení pinu pro kontrolku led (červená) power
   pinMode(LedWi, OUTPUT);                                              // Výstup nastavení pinu pro kontrolku led (modrá)   připojení k WiFi a MQTT
   pinMode(PwrSw, OUTPUT);                                              // Výstup nastavení pinu pro kontrolku led (zelená)  zapnutí/vypnutí led/relé
@@ -254,16 +255,18 @@ void setup() {
   pinMode(PwrBlue, OUTPUT);                                            // Výstup pro nastavení pinu světla led (blue  / white)
   pinMode(ClapSensor, INPUT);                                          // Vstup pro nastavení pinu Mikrofon
   pinMode(AmpPin, INPUT);                                              // Vstup pro nastavení pinu Ampermetr
-  attachInterrupt(digitalPinToInterrupt(Sw), pushInterrupt, FALLING);  // Přerušení na spadání hrany
   analogWrite(LedPWR, LedL);                                           // Zapnutí kontrolky (červená) připojení ke zdroji
   Serial.begin(115200);
   delay(1500);
-  printResetReason();     // Dočasné testování příčiny restartu
+  printResetReason();                                                  // Vypsání příčiny restartu
+  if (Tlac) {
+    pinMode(Sw, INPUT_PULLUP);                                         // PullUp výstup nastavení pinu pro Tlačítko
+    attachInterrupt(digitalPinToInterrupt(Sw), pushInterrupt, FALLING);// Přerušení na spadání hrany
+  }
   if (Temp) {
     dht.setup(DHTPin, DHTesp::DHT11);
   }
   preferences.begin(PREF_NAMESPACE, false);
-
   // Kontrola nastavených kalibračních hodnot v EEPROM
   if (!preferences.isKey("KalibrT")) {
     preferences.putDouble("KalibrT", 1.33);
@@ -316,7 +319,6 @@ void setup() {
   wifiManager.addParameter(&custom_mqtt_port);
   //wifiManager.addParameter(&custom_mqtt_username);
   //wifiManager.addParameter(&custom_mqtt_password);
-
   WiFi.setHostname(WIFI_HOSTNAME);
   String apName = String(WIFI_HOSTNAME) + "_AP";
   if (wifiManager.autoConnect(apName.c_str())) {
@@ -337,11 +339,11 @@ void setup() {
   // Pokud se dostanete až sem, jste připojeni k WiFi
   Serial.println("Připojeno k WiFi");
   if (strcmp(mqtt_server, "") == 0) {
-    strlcpy(mqtt_server, "192.168.10.6", sizeof(mqtt_server));  // Pokud se nenačte z EEPROM nastaví default
+    strlcpy(mqtt_server, "192.168.10.6", sizeof(mqtt_server));         // Pokud se nenačte z EEPROM nastaví default
     Serial.println("Chyba načtení MQTT serveru z EEPROM");
   }
   if (strcmp(mqtt_port, "") == 0) {
-    strlcpy(mqtt_port, "1883", sizeof(mqtt_port));  // Pokud se nenačte z EEPROM, nastaví defaultní hodnotu
+    strlcpy(mqtt_port, "1883", sizeof(mqtt_port));                     // Pokud se nenačte z EEPROM, nastaví defaultní hodnotu
     Serial.println("Chyba načtení MQTT portu z EEPROM");
   }
   Serial.print("MQTT server: ");
@@ -353,10 +355,10 @@ void setup() {
   client.setCallback(callback);
 
   Svetlo.toCharArray(SvetloChr, Svetlo.length() + 1);
-  connectToNetwork();  // Volání nové funkce pro připojení k nastavené WiFi a MQTT
+  connectToNetwork();                                                  // Volání nové funkce pro připojení k nastavené WiFi a MQTT
   Serial.println("Moje IP adresa je:");
   Serial.println(WiFi.localIP());
-  if (Temp or AmpMeter) {  // Pokud je zapnuto měřění teploty, nebo ampermetr aktivuj timer
+  if (Temp or AmpMeter) {                                              // Pokud je zapnuto měřění teploty, nebo ampermetr aktivuj timer
     TimerMereni.attach(CekejMereni, tempAndAmpMeter);
   }
   TimerOdeslat.attach(CekejOdeslat, Poslat);
@@ -376,15 +378,15 @@ void detectClap() {
         // Dvojtlesk detekován
         changeState();
         Serial.println("Detekováno kliknutí .. .. .. .. ..");
-        firstClapDetected = false;  // Reset detekce
-        aktivaceZarizeni();         // Aktualizace stavu zařízení
-        Poslat();                   // Odeslání stavu přes MQTT
+        firstClapDetected = false;                                     // Reset detekce
+        aktivaceZarizeni();                                            // Aktualizace stavu zařízení
+        Poslat();                                                      // Odeslání stavu přes MQTT
       } else {
         // Příliš dlouhý interval, považujeme za nový první tlesk
         lastClapTime = currentTime;
       }
     }
-    // delay(CekejDetectClap);      // Zpoždění pro zabránění falešných detekcí
+    // delay(CekejDetectClap);                                         // Zpoždění pro zabránění falešných detekcí
   } else if (firstClapDetected && (currentTime - lastClapTime > doubleClapWindow)) {
     // Vypršelo časové okno pro druhé tlesknutí
     firstClapDetected = false;
@@ -517,9 +519,9 @@ void aktivaceZarizeni() {
   }
   if (DeviceType & DEVICE_RELAY) {
     if (relayState) {
-      digitalWrite(Re, HIGH); // Zapnout relé
+      digitalWrite(Re, HIGH);                                          // Zapnout relé
     } else {
-      digitalWrite(Re, LOW);  // Vypnout relé
+      digitalWrite(Re, LOW);                                           // Vypnout relé
     }
   }
   updateZap();
@@ -528,10 +530,10 @@ void aktivaceZarizeni() {
 
 void tempAndAmpMeter() {
   if (Temp) {
-    senzorTemp();  // Načtení hodnoty ze seznoru DHT
+    senzorTemp();                                                      // Načtení hodnoty ze seznoru DHT
   }
   if (AmpMeter) {
-    measureAmp();  // Načtení hodnoty Ampermetru
+    measureAmp();                                                      // Načtení hodnoty Ampermetru
   }
 }
 
@@ -654,7 +656,7 @@ void callbackDevice(JsonDocument& doc) {
 }
 
 void reconnect() {
-  if (!client.connected()) {
+ if (!client.connected() || WiFi.status() != WL_CONNECTED) {
     IsConnected = false;
   }
 }
@@ -663,7 +665,6 @@ void Poslat() {
   reconnect();
   DynamicJsonDocument doc(512);  
 
-  
   // Vytvoříme pole "devices" pouze pokud existují nějaké LED k odeslání
   JsonArray devices = doc.createNestedArray("devices");
   
@@ -737,12 +738,6 @@ void Poslat() {
 
   serializeJson(doc, out);  
   client.publish(SvetloChr, out);
-
-  // float teplotaCipu = temperatureRead();
-  // Serial.print("Teplota čipu: ");
-  // Serial.print(teplotaCipu);
-  // Serial.println(" °C");
-
 }
 
 void senzorTemp() {
@@ -753,7 +748,7 @@ void senzorTemp() {
     }
 }
 
-void measureAmp() {  // Měření hodnoty z ampermetru
+void measureAmp() {                                                    // Měření hodnoty z ampermetru
   float a = analogRead(AmpPin);
   if (!isnan(a)) {
       PwrAmp = (PwrAmp + a) / 2;
@@ -763,17 +758,17 @@ void measureAmp() {  // Měření hodnoty z ampermetru
 void connectToNetwork() {
   int n = WiFi.scanNetworks();
   int bestNetworkIndex = -1;
-  int bestRSSI = -9999;  // Nízká výchozí hodnota pro porovnání
+  int bestRSSI = -9999;                                                // Nízká výchozí hodnota pro porovnání
   for (int i = 0; i < n; i++) {
-    if (WiFi.SSID(i) == ssid) {  // Hledání sítě s požadovaným SSID
+    if (WiFi.SSID(i) == ssid) {                                        // Hledání sítě s požadovaným SSID
       int rssi = WiFi.RSSI(i);
-      if (rssi > bestRSSI) {  // Pokud je signál silnější, ulož index a RSSI
+      if (rssi > bestRSSI) {                                           // Pokud je signál silnější, ulož index a RSSI
         bestNetworkIndex = i;
         bestRSSI = rssi;
       }
     }
   }
-  if (bestNetworkIndex != -1) {  // Pokud byla nalezena vhodná síť
+  if (bestNetworkIndex != -1) {                                        // Pokud byla nalezena vhodná síť
     WiFi.begin(WiFi.SSID(bestNetworkIndex).c_str(), password);
 
     int timeout = 10000;  // 10 sekund timeout
@@ -794,7 +789,7 @@ void connectToNetwork() {
           analogWrite(LedWi, LedL);
           client.subscribe(SvetloChr);
           IsConnected = true;
-          return;  // MQTT připojeno, ukončit funkci
+          return;                                                      // MQTT připojeno, ukončit funkci
         } else {
           analogWrite(LedWi, LedL);
           delay(2500);
