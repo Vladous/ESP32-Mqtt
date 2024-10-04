@@ -18,6 +18,7 @@
 // v3.0 21.08.2023 Úprava na ESP32 Deneyap Mini
 //                  Rozdělení světel a relé
 // v3.1.28.09.2024 Změna knihovny DHT na ESP32
+#define VERSION "3.1"
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -160,66 +161,67 @@
 #define LED_RGB       0x08
 #define DEVICE_RELAY  0x10
 
-uint8_t DHTPin = 3;                // Nastavení datového pinu DHT
-DHTesp dht;                        // Inicializace DHT senzoru
+uint8_t DHTPin = 3;                     // Nastavení datového pinu DHT
+DHTesp dht;                             // Inicializace DHT senzoru
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 Preferences preferences;
 
-const String Svetlo = "Test_Board"; // !! CHANGE !!  Topic název zařízení
-const uint8_t DeviceType = LED_RGB; // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
-const bool Tlac = true;             // !! CHANGE !!  Použití tlačítka
-const uint8_t Stisk = LED_RGB;      // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
-const bool Clap = false;            // !! CHANGE !!  Použití mikrofonuDHTTYPE
-const bool Temp = true;             // !! CHANGE !!  Použití DHT sezoru měření teploty
-const bool AmpMeter = false;        // !! CHANGE !!  Zapnutí měření odběru
+const String Svetlo = "Test_Board";     // !! CHANGE !!  Topic název zařízení
+const uint8_t DeviceType = LED_RGB;     // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
+const bool Tlac = true;                 // !! CHANGE !!  Použití tlačítka
+const uint8_t Stisk = LED_RGB;          // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY )
+const bool Clap = false;                // !! CHANGE !!  Použití mikrofonuDHTTYPE
+const bool Temp = true;                 // !! CHANGE !!  Použití DHT sezoru měření teploty
+const bool AmpMeter = false;            // !! CHANGE !!  Zapnutí měření odběru
+const char mqtt_ip[] = "192.168.1.1";   // Defaultní adresa MQTT serveru (Lze nastavit přes WiFiManager)
 
 const char* WIFI_HOSTNAME = Svetlo.c_str();
-char ssid[32];                      // Proměnná pro SSID
-char password[32];                  // Proměnná pro heslo
+char ssid[32];                          // Proměnná pro SSID
+char password[32];                      // Proměnná pro heslo
 // Mqtt proměnné nastavení
-char mqtt_server[40];               // MQTT IP adress
-char mqtt_port[6] = "1883";         // MQTT port
-char mqtt_username[32];             // MQTT User name
-char mqtt_password[32];             // MQTT Password
+char mqtt_server[40];                   // MQTT IP adress
+char mqtt_port[6] = "1883";             // MQTT port
+char mqtt_username[32];                 // MQTT User name
+char mqtt_password[32];                 // MQTT Password
 // Nastavení vstupů ESP
-const int Sw = 2;                   // Tlačítko
-const int ClapSensor = 12;          // Zvukový senzor připojený na analogový vstup GPIO34
-const int AmpPin = 40;              // Vstup ampérmetru
+const int Sw = 2;                       // Tlačítko
+const int ClapSensor = 12;              // Zvukový senzor připojený na analogový vstup GPIO34
+const int AmpPin = 40;                  // Vstup ampérmetru
 // Výstupy kontrolky led
-const int LedPWR = 11;              // Ledka power
-const int LedWi = 7;                // Ledka připojení
-const int PwrSw = 9;                // Ledka / transistor zapnuti
+const int LedPWR = 11;                  // Ledka power
+const int LedWi = 7;                    // Ledka připojení
+const int PwrSw = 9;                    // Ledka / transistor zapnuti
 // Výstupy ovládání
-const int Re = 39;                  // Relé
-const int PwrRed = 4;               // Ledka power (red)   / Světlo 1
-const int PwrGreen = 6;             // Ledka power (green) / Světlo 2
-const int PwrBlue = 8;              // Ledka power (blue)  / Světlo 3
+const int Re = 39;                      // Relé
+const int PwrRed = 4;                   // Ledka power (red)   / Světlo 1
+const int PwrGreen = 6;                 // Ledka power (green) / Světlo 2
+const int PwrBlue = 8;                  // Ledka power (blue)  / Světlo 3
 // Kalibrační hodnoty
-int ClapThreshold = 900;            // Nastavitelná hladina detekce tlesknutí
-float CekejOdeslat = 20.0f;         // Prodleva mezi odesláním naměřených hodnot
-float CekejMereni = 4.0f;           // Prodleva mezi měřením DHT
-int CekejDetectClap = 50;           // Prodleva mezi detekcí tlesknutí
+int ClapThreshold = 15;                 // Nastavitelná hladina detekce tlesknutí
+float CekejOdeslat = 20.0f;             // Prodleva mezi odesláním naměřených hodnot
+float CekejMereni = 4.0f;               // Prodleva mezi měřením DHT
+int CekejDetectClap = 50;               // Prodleva mezi detekcí tlesknutí
 int Value = 0;
 char SvetloChr[50];
-volatile int OZap;                  // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
-volatile int Zap;                   // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+volatile int OZap;                      // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
+volatile int Zap;                       // Led světlo 1 - 1 , Led svěetlo 2 - 2 , Led světlo 3 - 4 , RGB - 8 , Relé - 16
 float Teplota;
 float Vlhkost;
 char Pwr[50];
 // Definice zařízení
-bool led1State = false;             // Led svělto 1
+bool led1State = false;                 // Led svělto 1
 int led1Brightness = 255;
-bool led2State = false;             // Led světlo 2
+bool led2State = false;                 // Led světlo 2
 int led2Brightness = 255;
-bool led3State = false;             // Led světlo 3
+bool led3State = false;                 // Led světlo 3
 int led3Brightness = 255;
-bool ledRGBState = false;           // Led světlo RGB
+bool ledRGBState = false;               // Led světlo RGB
 int Red = 254;
 int Green = 254;
 int Blue = 254;
-bool relayState = false;            // Relé
+bool relayState = false;                // Relé
 bool PoslatOnOff = false;
 int LedL = 254;
 double KalibrT = 1.33;
@@ -229,6 +231,8 @@ bool IsConnected = false;
 unsigned long lastClapTime = 0;
 bool firstClapDetected = false;
 const unsigned long doubleClapWindow = 500;
+float average = 0.0;                    // Průměr jako float pro přesnější výpočty
+bool firstReading = true;               // Příznak pro první čtení
 Ticker TimerOdeslat, TimerMereni;
 
 void IRAM_ATTR pushInterrupt() {
@@ -246,6 +250,8 @@ void IRAM_ATTR pushInterrupt() {
 }
 
 void setup() {
+  analogSetAttenuation(ADC_11db);                                      // Nastavení attenuace pro širší rozsah měření
+  analogReadResolution(12);                                            // Nastavení rozlišení ADC na 12 bitů
   pinMode(LedPWR, OUTPUT);                                             // Výstup nastavení pinu pro kontrolku led (červená) power
   pinMode(LedWi, OUTPUT);                                              // Výstup nastavení pinu pro kontrolku led (modrá)   připojení k WiFi a MQTT
   pinMode(PwrSw, OUTPUT);                                              // Výstup nastavení pinu pro kontrolku led (zelená)  zapnutí/vypnutí led/relé
@@ -339,7 +345,7 @@ void setup() {
   // Pokud se dostanete až sem, jste připojeni k WiFi
   Serial.println("Připojeno k WiFi");
   if (strcmp(mqtt_server, "") == 0) {
-    strlcpy(mqtt_server, "192.168.10.6", sizeof(mqtt_server));         // Pokud se nenačte z EEPROM nastaví default
+    strlcpy(mqtt_server, mqtt_ip, sizeof(mqtt_server));                // Pokud se nenačte z EEPROM nastaví default
     Serial.println("Chyba načtení MQTT serveru z EEPROM");
   }
   if (strcmp(mqtt_port, "") == 0) {
@@ -365,9 +371,20 @@ void setup() {
 }
 
 void detectClap() {
-  int clapValue = analogRead(ClapSensor);
+  int currentReading = analogRead(ClapSensor);
   unsigned long currentTime = millis();
-  if (clapValue > ClapThreshold) {
+  
+  if (firstReading) {
+    average = currentReading;
+    firstReading = false;
+  } else {
+    // Aktualizace průměru pouze pokud aktuální čtení není více než o 200 nad průměrem
+    if (currentReading <= average + (ClapThreshold * 2)) {
+      average = (currentReading + average) / 2.0;
+    }
+  }
+
+  if (currentReading > average + ClapThreshold) {
     if (!firstClapDetected) {
       // První tlesknutí
       firstClapDetected = true;
@@ -606,6 +623,8 @@ void callbackSettingsGet() {
   }
   float teplotaCipu = temperatureRead();
   responseDoc["TeplotaChip"] = teplotaCipu;
+
+  responseDoc["Verze"] = VERSION;
 
   char responseOut[512];
 
