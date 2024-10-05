@@ -1,10 +1,10 @@
-# MQTT Device Control
+# **MQTT** Device Control with **ESP32** for **Smart Home** and **IoT** projects
 
 [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cz.svg" width="16"> Česky](./README.md) | [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/gb.svg" width="16"> English](./README.en.md)
 
-This project allows you to control various devices (LED, RGB LED, relay) using the ESP32 module and communication via MQTT. Simply adjust the device type and configure the server addresses, and you can start controlling your devices via MQTT.
+This project allows you to control various devices (LED, RGB LED, relay) using the **ESP32** module and communication via **MQTT**. Simply adjust the device type and configure the server addresses, and you can start controlling your devices via **MQTT**.
 
-## 🌟 Key Benefits
+## 🌟 Main advantages of **ESP32** **MQTT** control
 
 ### 🔧 Flexibility
 - This project is designed to be easily expandable to different types of devices.
@@ -12,22 +12,22 @@ This project allows you to control various devices (LED, RGB LED, relay) using t
 
 ### 🛠️ Easy Configuration
 - Configuration is simple and straightforward.
-- Just modify a few variables, and your ESP32 module will communicate with the MQTT server and control your devices.
+- Just modify a few variables, and your **ESP32** module will communicate with the **MQTT** server and control your devices.
 
-## 🚀 Getting Started
+## 🚀 How to get started with **ESP32** and **MQTT**
 
 ### 📋 Prerequisites
-- Ensure you have an ESP32 module and the necessary peripherals (LED, RGB LED, relay) available.
+- Ensure you have an **ESP32** module and the necessary peripherals (LED, RGB LED, relay) available.
 
 ### ⚙️ Setup
 1. Open the code and edit the configuration file for your project.
-2. Change the device type (LED, RGB LED, relay) and set the MQTT server addresses.
+2. Change the device type (LED, RGB LED, relay) and set the **MQTT** server addresses.
 
 ### 📥 Uploading the Code
-- Upload the modified code to your ESP32 module.
+- Upload the modified code to your **ESP32** module.
 
 ### 🎮 Usage
-- Remotely control your devices using MQTT messages.
+- Remotely control your devices using **MQTT** messages.
 
 ---
 

@@ -1,10 +1,10 @@
-# MQTT Device Control
+# **MQTT** Device Control s **ESP32** pro **Smart Home** a **IoT** projekty
 
 [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cz.svg" width="16"> Česky](./README.md) | [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/gb.svg" width="16"> English](./README.en.md)
 
-Tento projekt umožňuje ovládat různá zařízení (LED, RGB LED, relé) pomocí modulu ESP32 a komunikace přes MQTT. Jednoduše upravte typ zařízení a nastavte adresy serverů a můžete začít ovládat vaše zařízení prostřednictvím MQTT.
+Tento projekt umožňuje ovládat různá zařízení (LED, RGB LED, relé) pomocí modulu **ESP32** a komunikace přes **MQTT**. Jednoduše upravte typ zařízení a nastavte adresy serverů a můžete začít ovládat vaše zařízení prostřednictvím **MQTT**.
 
-## 🌟 Hlavní výhody
+## 🌟 Hlavní výhody **ESP32** **MQTT** ovládání
 
 ### 🔧 Flexibilita
 - Tento projekt je navržen tak, aby byl snadno rozšířitelný na různé typy zařízení. 
@@ -12,28 +12,30 @@ Tento projekt umožňuje ovládat různá zařízení (LED, RGB LED, relé) pomo
 
 ### 🛠️ Jednoduchá konfigurace
 - Konfigurace je snadná a přehledná. 
-- Stačí změnit několik proměnných a váš modul ESP32 bude komunikovat s MQTT serverem a ovládat vaše zařízení.
+- Stačí změnit několik proměnných a váš modul **ESP32** bude komunikovat s **MQTT** serverem a ovládat vaše zařízení.
 
-## 🚀 Jak začít
+## 🚀  Jak začít s **ESP32** a **MQTT**
 
 ### 📋 Předpoklady
-- Ujistěte se, že máte modul ESP32 a potřebné periferie (LED, RGB LED, relé) k dispozici.
+- Ujistěte se, že máte modul **ESP32** a potřebné periferie (LED, RGB LED, relé) k dispozici.
 
 ### ⚙️ Nastavení
 1. Otevřete kód a upravte konfigurační soubor pro váš projekt. 
-2. Změňte typ zařízení (LED, RGB LED, relé) a nastavte adresy MQTT serverů.
+2. Změňte typ zařízení (LED, RGB LED, relé) a nastavte adresy **MQTT** serverů.
 
 ### 📥 Nahrání kódu
-- Nahrajte upravený kód na váš modul ESP32.
+- Nahrajte upravený kód na váš modul **ESP32**.
 
 ### 🎮 Použití
-- Vzdáleně ovládejte vaše zařízení pomocí MQTT zpráv.
+- Vzdáleně ovládejte vaše zařízení pomocí **MQTT** zpráv.
 
 ---
 
-## 🤝 Přispívání
+## 🤝 Nápady a diskuze
 
 Pokud máte nápady na vylepšení tohoto projektu, budeme rádi za příspěvky a pull requesty.
+Můžete se také zapojit do diskuze v [sekci Discussions](https://github.com/Vladous/ESP32-Mqtt/discussions) tohoto repozitáře.
+
 
 ## 🐛 Hlášení chyb
 
