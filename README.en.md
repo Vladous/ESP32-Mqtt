@@ -41,6 +41,19 @@ You can report bugs and issues in the [Issues section](https://github.com/Vladou
 
 ---
 
+## 💖 Voluntary Contributions and Development Support
+
+If this project inspires you and you want to contribute to its further development, we welcome your support. Your voluntary contributions help us improve and expand the functionality of the project.
+
+<details> <summary><strong> 💳 QR Payment</strong></summary>
+
+  ![Bank QR Code](https://raw.githubusercontent.com/Vladous/ESP32-Mqtt/main/.pictures/qr_ESP32-MQTT.png)  
+</details>
+
+Any support is welcome and greatly appreciated. Thank you!
+
+---
+
 ## ⚠️ Warning: Working with High Voltage
 
 **WARNING:** This project involves working with high voltage (230V AC). Working with high voltage can be extremely dangerous and potentially lethal if not done correctly. If you lack the necessary experience and qualifications, we strongly recommend seeking the help of a qualified electrician or expert.
