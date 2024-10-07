@@ -43,6 +43,19 @@ Můžete hlásit chyby a problémy v [sekci Issues](https://github.com/Vladous/E
 
 ---
 
+## 💖 Dobrovolné příspěvky a podpora vývoje
+
+Pokud vás tento projekt inspiruje a chcete přispět k jeho dalšímu rozvoji, uvítáme vaši podporu. Vaše dobrovolné příspěvky nám pomáhají zlepšovat a rozšiřovat funkčnost projektu.
+
+<details> <summary><strong> 💳 QR Platba</strong></summary>
+
+  ![Bankovní QR Code](https://raw.githubusercontent.com/Vladous/ESP32-Mqtt/main/.pictures/qr_ESP32-MQTT.png)  
+</details>
+
+Každá podpora je vítána a velmi oceňována. Děkujeme!
+
+---
+
 ## ⚠️ Varování: Práce s vysokým napětím
 
 **POZOR:** Tento projekt zahrnuje práci s vysokým napětím (230V AC). Práce s vysokým napětím může být extrémně nebezpečná a potenciálně smrtelná, pokud není prováděna správně. Pokud nemáte odpovídající zkušenosti a kvalifikaci, důrazně doporučujeme vyhledat pomoc kvalifikovaného elektrikáře nebo odborníka.
