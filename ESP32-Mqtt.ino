@@ -7,6 +7,7 @@
 // https://github.com/Vladous/ESP32-Mqtt
 //
 // Deska Deneyap Mini (Board Deneyap Mini)
+// Deska ESP32 LOLIN S2 MINI WEMOS
 //
 // MQTT Client IoT
 // v1.0 20.03.2020
@@ -24,7 +25,8 @@
 // v3.0 21.08.2023 Úprava na ESP32 Deneyap Mini (Modification to ESP32 Deneyap Mini)
 //                  Rozdělení světel a relé (Distribution of lights and relays)
 // v3.1.28.09.2024 Změna knihovny DHT na ESP32 (Changed DHT library to ESP32)
-#define VERSION "3.1"
+// v3.2.27.12.2024 Přidání funkce zapnutí mávnutím (Adding activation by waving in front of the distance sensor)
+#define VERSION "3.2"
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -50,11 +52,11 @@
 //  | GND  |-------------| Sv.červená (1) Light Red |-------------|-------       -------|             |                          |
 //  +------+             +--------------------------+             |      |       |      |             +--------------------------+
 //                       |                          |             |  5   4      36  35  |             |                          |
-//  +------+             +--------------------------+             |                     |             +--------------------------+
-//  | GND  |-------------|Sv.zelená (2) Light Green |-------------|-------       -------|             |                          |
-//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
-//  | GND  |-------------|      Ledka WiFi Led      |-------------|  7   6      34  33  |             |                          |
-//  +------+             +--------------------------+             |                     |             +--------------------------+
+//  +------+             +--------------------------+             |                     |             +--------------------------+             +------+
+//  | GND  |-------------|Sv.zelená (2) Light Green |-------------|-------       -------|-------------| Echo               VCC   |-------------| VCC  |
+//  +------+             +--------------------------+             |      |       |      |             +         HC-SR4           +             |      |
+//  | GND  |-------------|      Ledka WiFi Led      |-------------|  7   6      34  33  |-------------| Trigger            GND   |-------------| GND  |
+//  +------+             +--------------------------+             |                     |             +--------------------------+             +------+
 //  | GND  |-------------| Sv.modrá (3) Light Blue  |-------------|-------       -------|             |                          |
 //  +------+             +--------------------------+             |      |       |      |             +--------------------------+
 //  | GND  |-------------|     Ledka on/off Led     |-------------|  9   8       21  18 |             |                          |
@@ -107,6 +109,7 @@
 //  "CekejDetectClap": 50,              // integer, Časový interval pro detekci tlesknutí (v milisekundách) (Time interval for clap detection (in milliseconds))
 //  "KalibrT": 1.33,                    // float, Kalibrace teplotního senzoru (Temperature sensor calibration)
 //  "KalibrV": 0.70                     // float, Kalibrace vlhkostního senzoru (Calibration of the humidity sensor)
+//  "DistanceSet": 5                    // int, Kalibrace vzdálenosti mávnutí (Calibration distance of wave detection)
 //  "TeplotaChip" : 50                  // float, Teplota čipu ESP ve °C (ESP chip temperature in °C)
 //
 // JSON callback
@@ -118,16 +121,18 @@
 //
 // "settings": "set",                   // string, Určuje akci, "set" pro nastavení, "get" pro získání nastavení (Specifies the action, "set" for setting, "get" for getting the setting)
 //  "ClapThreshold": 900,               // integer (volitelně), Prah pro detekci tlesknutí (Threshold for clap detection)
-//  "CekejOdeslat": 20.0,               // float (volitelně), Časový interval čekání na odeslání (v sekundách) (Time interval waiting for sending (in seconds))
-//  "CekejMereni": 4.0,                 // float (volitelně), Časový interval čekání na měření (v sekundách) (Time interval waiting for measurement (in seconds))
+//  "CekejOdeslat": 20.0,               // float   (volitelně), Časový interval čekání na odeslání (v sekundách) (Time interval waiting for sending (in seconds))
+//  "CekejMereni": 4.0,                 // float   (volitelně), Časový interval čekání na měření (v sekundách) (Time interval waiting for measurement (in seconds))
 //  "CekejDetectClap": 50,              // integer (volitelně), Časový interval pro detekci tlesknutí (v milisekundách) (Time interval for clap detection (in milliseconds))
-//  "KalibrT": 1.33,                    // float (volitelně), Kalibrace teplotního senzoru (Temperature sensor calibration)
-//  "KalibrV": 0.70                     // float (volitelně), Kalibrace vlhkostního senzoru (Calibration of the humidity sensor)
+//  "KalibrT": 1.33,                    // float   (volitelně), Kalibrace teplotního senzoru  (Temperature sensor calibration)
+//  "KalibrV": 0.70                     // float   (volitelně), Kalibrace vlhkostního senzoru (Calibration of the humidity sensor)
+//  "DistanceSet": 5                    // int     (volitelně), Kalibrace vzdálenosti mávnutí (Calibration distance of wave detection)
 //
 //
 // Přidat mikrotlačítko reset
 // Výber výstupu teploty °C / °F
-// Možnost dalšího ovládání výběr : tlesknutí (mikrofon) / Měření vzdálenosti mávnutí (HC-SR04) / Detekce pohybu (HW-MS03)
+// Při ovládání vzdálenosti použít cm i inch
+// Doplnit podmínky na všechny dostupná místa
 //
 
 #include <PubSubClient.h>               // https://github.com/knolleary/pubsubclient
@@ -160,6 +165,7 @@ const uint8_t DeviceType = LED_RGB;     // !! CHANGE !!  LED_WHITE1 | LED_WHITE2
 const bool Tlac = true;                 // !! CHANGE !!  Použití tlačítka (Using the button)
 const uint8_t Stisk = LED_RGB;          // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY ) (Button settings)
 const bool Clap = false;                // !! CHANGE !!  Použití mikrofonu (Using the microphone)
+const bool Wave = true;                 // !! CHANGE !!  Aktivace funkce zapnutí mávnutím (Activation by waving in front of the distance sensor)
 const bool Temp = true;                 // !! CHANGE !!  Použití DHT sezoru měření teploty (Using a DHT sensor to measure temperature)
 const bool AmpMeter = false;            // !! CHANGE !!  Použití měření odběru (Using current draw measurement)
 const char mqtt_ip[] = "192.168.1.1";   // Defaultní adresa MQTT serveru (Lze nastavit přes WiFiManager) (Default MQTT server address (Can be set via WiFiManager))
@@ -175,6 +181,8 @@ char mqtt_password[32];                 // Proměnná pro MQTT Password (Variabl
 // Nastavení vstupů ESP
 const int Sw = 2;                       // Nastavení pinu pro tlačítko (Setting the pin for the button)
 const int ClapSensor = 12;              // Nastavení pinu pro zvukový senzor - mikrofon (Pin settings for sound sensor - microphone)
+const int trigPin = 33;                 //
+const int echoPin = 34;                 //
 const int AmpPin = 40;                  // Nastavení pinu pro ampérmetr (Pin settings for ammeter)
 // Výstupy kontrolky led
 const int LedPWR = 11;                  // Nastavení pinu pro led kontrolku napájení (Setting the pin for the power LED)
@@ -190,6 +198,7 @@ int ClapThreshold = 15;                 // Výchozí nastavení hladiny detekce 
 float CekejOdeslat = 20.0f;             // Výchozí nastavení prodlevy mezi odesláním dat (Default setting for the delay between sending data)
 float CekejMereni = 4.0f;               // Výchozí nastavení prodlevy mezi měřením DHT (Default setting for the delay between DHT measurements)
 int CekejDetectClap = 50;               // Výchozí nastavení prodlevy mezi detekcí tlesknutí (Default setting for the delay between clap detection)
+int DistanceSet = 5;                    // Nastavení vzdálenosti pro sepnutí
 int Value = 0;
 char SvetloChr[50];
 volatile int OZap;                      // Proměnná pro kontrolu stavu zařízení (A variable to check the status of the device)
@@ -248,6 +257,8 @@ void setup() {
   pinMode(PwrBlue, OUTPUT);                                            // Výstup aktivace pinu světla (modrá   / světlo 3) (Light Pin Enable Output (Blue  / Light 3))
   pinMode(ClapSensor, INPUT);                                          // Vstup aktivace pinu Mikrofon (Microphone pin enable input)
   pinMode(AmpPin, INPUT);                                              // Vstup aktivace pinu Ampermetr (Ammeter pin activation input)
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
   analogWrite(LedPWR, LedL);                                           // Zapnutí kontrolky (červená) připojení ke zdroji (Turning on the light (red) connecting to the source)
   Serial.begin(115200);
   delay(1500);
@@ -275,6 +286,11 @@ void setup() {
     preferences.putInt("ClapThreshold", 900);
   }
   ClapThreshold = preferences.getInt("ClapThreshold", 900);
+
+  if (!preferences.isKey("DistanceSet")) {
+    preferences.putInt("DistanceSet", 5);
+  }
+  ClapThreshold = preferences.getInt("DistanceSet", 5);
 
   if (!preferences.isKey("CekejOdeslat")) {
     preferences.putFloat("CekejOdeslat", 20);
@@ -402,9 +418,7 @@ void loop() {
     connectToNetwork();                                                // Opětovné připojení k WiFi (Reconnect to WiFi)
   }  
   client.loop();
-  if (Clap) {
-    detectClap();
-  }
+  extendedSwitchDispatcher();
   if (PoslatOnOff) {
     Poslat();
     PoslatOnOff = false;
@@ -415,6 +429,16 @@ void loop() {
   if (Zap > 0) {
     analogWrite(PwrSw, LedL);
   }  
+}
+
+// 
+void extendedSwitchDispatcher() {
+  if (Clap) {
+    detectClap();
+  }
+  if (Wave) {
+    checkWave();
+  }
 }
 
 // Update proměnné zap (Update variable zap)
@@ -439,7 +463,7 @@ void updateZap() {
 
 // Změna stavu zařízení při stisku tlačítka (Changing the state of the devices when the button is pressed)
 void changeState() {
-  if (Zap == 0) {                       // Zapnout zařízení podle proměnné Stisk (Turn on the devices according to the variable Stisk)
+  if (Zap == 0) {                                                      // Zapnout zařízení podle proměnné Stisk (Turn on the devices according to the variable Stisk)
       if (Stisk & LED_WHITE1) {
         led1State = true;
       }
@@ -455,7 +479,7 @@ void changeState() {
       if (Stisk & DEVICE_RELAY) {
         relayState = true;
       }
-    } else {                            // Vypnout všechna zařízení (Turn off all devices)
+    } else {                                                           // Vypnout všechna zařízení (Turn off all devices)
       if (DeviceType & LED_WHITE1) {
         led1State = false;
       }
@@ -532,6 +556,25 @@ void aktivaceZarizeni() {
   ledKontolaZapnuti();
 }
 
+void checkWave() {
+  long duration;
+  int distance;
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH);
+  distance = duration * 0.034 / 2;
+
+  if (distance < DistanceSet) {
+    changeState();                                                     // Změna stavů zařízení (Changing devices states)
+    aktivaceZarizeni();                                                // Aktualizace stavu zařízení (Devices status update)
+    Poslat();                                                          // Odeslání stavu přes MQTT (Sending status via MQTT)
+  }
+}
+
 // Načítání hodnot ze senzorů (Reading values ​​from sensors)
 void tempAndAmpMeter() {
   if (Temp) {
@@ -544,6 +587,7 @@ void tempAndAmpMeter() {
 
 // Přijetí zprávy z MQTT serveru (Receive message from MQTT server)
 void callback(char* topic, byte* payload, unsigned int length) {
+  String topicStr = String(topic);
   DynamicJsonDocument doc(512);                                        // Deklarace proměnné doc pro Json (Declaration of doc variable for Json)
   DeserializationError error = deserializeJson(doc, payload, length);  // Deserializace Json zprávy (Deserialize a Json message)
   // Ukončení funkce pri chybě deserializace (Function termination on deserialization error)
@@ -552,16 +596,32 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.println(error.c_str());
     return;
   }
-  // Roztřídění přijatých zpráv (settings-set, settings-get, device) (Sorting received messages)
-  if (doc.containsKey("settings")) {
-    const char* settingAction = doc["settings"];                       // Načtení z příznaku settings (Loaded from the settings)
-    if (strcmp(settingAction, "set") == 0) {
-      callbackSettingsSet(doc);                                        // Pokud je settings set, zavolej funkci pro nastavení prarametrů (If settings is set, call the parameter setting function)
-    } else if (strcmp(settingAction, "get") == 0) {
-      callbackSettingsGet();                                           // Pokud je settings set, zavolej funkci pro odeslání nastavení parametrů (If settings is set, call the function to send the parameter settings)
+
+  // Zpracování podle topicu
+  if (topicStr == "Led_brightness") {
+    if (doc["brightArd"] != nullptr) {
+      LedL = doc["brightArd"];                                         // Nastavení hodnoty jasu kontrolek (Setting the value of the brightness of the lights)
     }
   } else {
-    callbackDevice(doc);                                               // Pokud není příznak settings, zavolej funkci ovládání zařízení (If there is no settings flag, call the device control function)
+    // Roztřídění přijatých zpráv (settings-set, settings-get, device) (Sorting received messages)
+    if (doc.containsKey("settings")) {
+      const char* settingAction = doc["settings"];                       // Načtení z příznaku settings (Loaded from the settings)
+      if (strcmp(settingAction, "set") == 0) {
+        callbackSettingsSet(doc);                                        // Pokud je settings set, zavolej funkci pro nastavení prarametrů (If settings is set, call the parameter setting function)
+      } else if (strcmp(settingAction, "get") == 0) {
+        callbackSettingsGet();                                           // Pokud je settings set, zavolej funkci pro odeslání nastavení parametrů (If settings is set, call the function to send the parameter settings)
+      }
+    } else if(doc.containsKey("reset")) {
+      resetCalibreData();
+      resetWifiManager();
+      restartDevice();    
+    } else if(doc.containsKey("restart")) {
+      restartDevice();
+    } else if (doc.containsKey("help")) {
+        sendHelpResponse(); // Volání funkce pro odeslání seznamu příkazů
+    } else {
+      callbackDevice(doc);                                               // Pokud není příznak settings, zavolej funkci ovládání zařízení (If there is no settings flag, call the device control function)
+    }
   }
 }
 
@@ -583,6 +643,10 @@ void callbackSettingsSet(JsonDocument& doc) {
   if (doc.containsKey("CekejDetectClap")) {
     CekejDetectClap = doc["CekejDetectClap"].as<int>();                // Prodleva mezi kontrolou tlesknutí (Delay between clap checks)
     preferences.putInt("CekejDetectClap", CekejDetectClap);            // Uložení prodlevy mezi kontrolou tlesknutí (Saving the delay between clap checks)
+  }
+  if (doc.containsKey("DistanceSet")) {
+    CekejDetectClap = doc["DistanceSet"].as<int>();                    // Vzdálenost detekce mávnutí (Distance wave checks)
+    preferences.putInt("DistanceSet", DistanceSet);                    // Uložení vzdálenosti detekce mávnutí (Saving the distance wave checks)
   }
   if (doc.containsKey("KalibrT")) {
     KalibrT = doc["KalibrT"].as<float>();                              // Kalibrační konstanta pro měření teploty (Calibration constant for temperature measurement)
@@ -612,6 +676,9 @@ void callbackSettingsGet() {
     responseDoc["ClapThreshold"] = ClapThreshold;                      // Přidání nastavené hodnoty prahu tlesknutí do výstupu k odeslání (Adding a set clap threshold value to the output to send)
     responseDoc["CekejDetectClap"] = CekejDetectClap;                  // Přidání nastavené hodnoty prodlevy kontroly tlesknutí do výstupu k odeslání (Adding a set clap check delay value to the output to send)
   }
+  if (Wave) {
+    responseDoc["DistanceSet"] = DistanceSet;                          // Přidání nastavené hodnoty vzdálenosti detekce mávnutí do výstupu k odeslání (Adding a set wave check delay value to the output to send)
+  }
   float teplotaCipu = temperatureRead();
   responseDoc["TeplotaChip"] = teplotaCipu;                            // Přidání aktuální teploty ESP do výstupu k odeslání (Adding the current ESP temperature to the output to send)
   responseDoc["Verze"] = VERSION;                                      // Přidání aktuální verze softwaru do výstupu k odeslání (Adding the current version of the software to the output to send)
@@ -621,10 +688,7 @@ void callbackSettingsGet() {
 }
 
 // Funkce pro nastavení zařízení z MQTT (Function to set up device from MQTT)
-void callbackDevice(JsonDocument& doc) {
-  if (doc["brightArd"] != nullptr) {
-      LedL = doc["brightArd"];                                         // Nastavení hodnoty jasu kontrolek (Setting the value of the brightness of the lights)
-    }
+void callbackDevice(JsonDocument& doc) { 
   if (doc.containsKey("device") && doc.containsKey("state")) {
     String deviceName = doc["device"].as<String>();                    // Vybrané zařízení (Selected device)
     String state = doc["state"].as<String>();                          // Nastavený parametr (Set parameter)
@@ -783,7 +847,8 @@ void connectToNetwork() {
       while (!client.connected()) {
         if (client.connect(WIFI_HOSTNAME)) {
           analogWrite(LedWi, LedL);
-          client.subscribe(SvetloChr);
+          client.subscribe(SvetloChr);                                 // Přihlášení topic kanálu zařízení
+          client.subscribe("Led_brightness");                          // Přihlášení univerzal topic kanálu jasu led
           IsConnected = true;
           return;                                                      // MQTT připojeno, ukončit funkci (MQTT connected, quit function)
         } else {
@@ -801,13 +866,48 @@ void connectToNetwork() {
   }
 }
 
-// Zatím nepoužitá funkce
+void sendHelpResponse() {
+  DynamicJsonDocument helpDoc(1024);                                   // Zvýšení velikosti bufferu pro více dat
+  // Přidání seznamu příkazů
+  helpDoc["commands"] = JsonArray();
+  helpDoc["commands"].add("reset");                                    // Reset zařízení
+  helpDoc["commands"].add("restart");                                  // Restart zařízení
+  helpDoc["commands"].add("settings-set");                             // Nastavení parametrů
+  helpDoc["commands"].add("settings-get");                             // Získání aktuálních parametrů
+  helpDoc["commands"].add("help");                                     // Získání nápovědy
+
+  // Detailní možnosti pro "settings-set"
+  helpDoc["settings-set-options"] = JsonObject();                      // Objekt pro možnosti nastavení
+  helpDoc["settings-set-options"]["CekejOdeslat"] = "float - časový interval mezi odesláním dat (v sekundách)";
+  if (Temp || AmpMeter) {
+    helpDoc["settings-set-options"]["CekejMereni"] = "float - nastavené prodlevy měření senzorů (v sekundách)";
+    if (Temp) {
+      helpDoc["settings-set-options"]["KalibrT"] = "double - nastavené kalibrační hodnoty teploměru";
+      helpDoc["settings-set-options"]["KalibrV"] = "double - nastavené kalibrační hodnoty vlhkoměru";
+    }
+  }  
+  if (Clap) {
+    helpDoc["settings-set-options"]["ClapThreshold"] = "int - nastavené hodnoty prahu tlesknutí";
+    helpDoc["settings-set-options"]["CekejDetectClap"] = "int - nastavené hodnoty prodlevy kontroly tlesknutí";
+  }
+  if (Wave) {
+    helpDoc["settings-set-options"]["DistanceSet"] = "int - nastavené hodnoty vzdálenosti kontroly mávnutí";
+  }
+  // Serializace a odeslání zprávy
+  char helpOut[1024];
+  serializeJson(helpDoc, helpOut);
+  client.publish(SvetloChr, helpOut);                                  // Odeslání zprávy na MQTT topic
+}
+
 // Funkce na vymazání uložených dat z WiFiManageru (Function to delete saved data from WiFiManager)
 void resetWifiManager() {
   wifiManager.resetSettings();
 }
 
-// Zatím nepoužitá funkce
+void restartDevice() {
+    ESP.restart();                                                     // Restart zařízení
+}
+
 // Funkce na vymazání uložených dat z EEPROM (Function to erase stored data from EEPROM)
 void resetCalibreData() {
  preferences.begin(PREF_NAMESPACE, false);
@@ -815,6 +915,7 @@ void resetCalibreData() {
   preferences.clear();
   preferences.end();
 }
+
 // Funkce na vypsání výjimek restartu (Function to list restart exceptions)
 void printResetReason() {
   esp_reset_reason_t reason = esp_reset_reason();

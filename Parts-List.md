@@ -61,6 +61,11 @@
 | Microphone      |    1     | CZN-15E 2-pin Electret Microphone    | [CZN-15E datasheet](https://eva.fing.edu.uy/file.php/1241/materiales/HD/CZN-15E.pdf) |
 | Capacitor       |    1     | Electrolytic 1uF/50V               ||
 
+### ✋ Ovládání mávnutím
+| Component       | Quantity | Description                         | Datasheet |
+|-----------|:--------:|:-------|:-------|
+| Ultrasonic senzor | 1 | HC-SR4 |[HC-SR4 datasheet](www.handsontec.com/dataspecs/HC-SR04-Ultrasonic.pdf)|
+
 ### 📊 Power Consumption Measurement
 | Component       | Quantity | Description                         | Datasheet |
 |-----------------|:--------:|-------------------------------------|:----------|

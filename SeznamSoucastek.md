@@ -61,6 +61,11 @@
 | Mikrofon | 1 | CZN-15E 2pin kondenzátorový mikrofon |[CZN-15E datasheet](https://eva.fing.edu.uy/file.php/1241/materiales/HD/CZN-15E.pdf)|
 | Kondenzátor | 1 | Elektrolitický 1uF/50V ||
 
+### ✋ Ovládání mávnutím
+| Součástka | Množství | Popis | Datasheet |
+|-----------|:--------:|:-------|:-------|
+| Senzor vzdálenosti | 1 | HC-SR4 |[HC-SR4 datasheet](www.handsontec.com/dataspecs/HC-SR04-Ultrasonic.pdf)|
+
 ### 📊 Měření odběru
 | Součástka | Množství | Popis | Datasheet |
 |-----------|:--------:|:-------|:-------|
