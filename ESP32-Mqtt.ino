@@ -360,6 +360,13 @@ void reconnect() {
 
 // Připojení k WiFi a MQTT (Connection to WiFi and MQTT)
 void connectToNetwork() {
+  static unsigned long lastAttemptTime = 0;  // Čas posledního pokusu o připojení
+  const unsigned long retryInterval = 2000; // 2 sekundy mezi pokusy
+
+  if (millis() - lastAttemptTime < retryInterval) {
+    return; // Pokud ještě neuplynul interval, neprováděj další pokus
+  }
+  
   // Vyhledání nejsilnějšího připojení (Finding the strongest connection)
   int n = WiFi.scanNetworks();
   int bestNetworkIndex = -1;

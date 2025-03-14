@@ -3,25 +3,27 @@
 // Definice globálních proměnných
 extern DefaultConfig defaultConfig;
 extern Preferences preferences;
+extern void debugMQTT(const String& message);
 
 void loadDefaultConfig() {
   preferences.begin(PREF_NAMESPACE, false);  // Inicializace Preferences s jmenným prostorem
+
 
   // Načtení uložených hodnot (Retrieving stored values)
   String savedServer = preferences.getString("mqtt_server", "");
   String savedPort = preferences.getString("mqtt_port", "");
   savedServer.toCharArray(mqtt_server, sizeof(mqtt_server));
   savedPort.toCharArray(mqtt_port, sizeof(mqtt_port));
-
+ 
   if (!preferences.isKey("KalibrT")) {
-    preferences.putDouble("KalibrT", defaultConfig.KalibrT);
+    preferences.putFloat("KalibrT", defaultConfig.KalibrT );
   }
-  defaultConfig.KalibrT = preferences.getDouble("KalibrT", defaultConfig.KalibrT);
-
+  defaultConfig.KalibrT = preferences.getFloat("KalibrT", defaultConfig.KalibrT);
+  
   if (!preferences.isKey("KalibrV")) {
-    preferences.putDouble("KalibrV", defaultConfig.KalibrV );
+    preferences.putFloat("KalibrV", defaultConfig.KalibrV );
   }
-  defaultConfig.KalibrV = preferences.getDouble("KalibrV", defaultConfig.KalibrV );
+  defaultConfig.KalibrV = preferences.getFloat("KalibrV", defaultConfig.KalibrV );
 
   if (!preferences.isKey("ClapThreshold")) {
     preferences.putInt("ClapThreshold", defaultConfig.ClapThreshold );
