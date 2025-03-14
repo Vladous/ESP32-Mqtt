@@ -29,7 +29,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
             // Extrahování hodin a minut
             int hours, minutes;
             sscanf(localTime, "%*d. %*d. %*d %d:%d", &hours, &minutes);
-            if (hours >= defaultConfig.NightStartHour || defaultConfig.NightEndHour < 6) {
+            if (hours >= defaultConfig.NightStartHour || hours < defaultConfig.NightEndHour) {
               defaultConfig.NightKontrolLedEnable = true;
             } else {
               defaultConfig.NightKontrolLedEnable = false;
@@ -114,6 +114,7 @@ void callbackSettingsGet() {
     responseDoc["DistanceSet"] = defaultConfig.DistanceSet;
   }
   responseDoc["TeplotaChip"] = temperatureRead();
+  responseDoc["Verze"] = VERSION;
   char responseOut[512];
   serializeJson(responseDoc, responseOut);
   client.publish(SvetloChr, responseOut);
@@ -279,4 +280,9 @@ void sendHelpResponse() {
   char helpOut[1024];
   serializeJson(helpDoc, helpOut);
   client.publish(SvetloChr, helpOut);                                  // Odeslání zprávy na MQTT topic
+}
+
+void debugMQTT(const String& message) {
+  String messageJson = "{\"device\":\"" + String(SvetloChr) + "\",\"message\":\"" + message + "\"}";
+  client.publish("logs", messageJson.c_str());
 }

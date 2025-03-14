@@ -12,6 +12,7 @@
 // Deklarace externích konstant
 extern const char* PREF_NAMESPACE;
 extern const char* WIFI_HOSTNAME;
+extern const char* VERSION;
 
 // Externí proměnné
 extern PubSubClient client; // MQTT klient, definovaný jinde
@@ -48,5 +49,6 @@ void reconnect();
 void resetCalibreData();
 void resetWifiManager();
 void restartDevice();
+void debugMQTT(const String& message);
 
 #endif // MQTT_HANDLER_H

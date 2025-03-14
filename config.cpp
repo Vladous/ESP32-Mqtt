@@ -14,39 +14,39 @@ void loadDefaultConfig() {
   savedPort.toCharArray(mqtt_port, sizeof(mqtt_port));
 
   if (!preferences.isKey("KalibrT")) {
-    preferences.putDouble("KalibrT", 1.33);
+    preferences.putDouble("KalibrT", defaultConfig.KalibrT);
   }
-  defaultConfig.KalibrT = preferences.getDouble("KalibrT", 1.33);
+  defaultConfig.KalibrT = preferences.getDouble("KalibrT", defaultConfig.KalibrT);
 
   if (!preferences.isKey("KalibrV")) {
-    preferences.putDouble("KalibrV", 0.70);
+    preferences.putDouble("KalibrV", defaultConfig.KalibrV );
   }
-  defaultConfig.KalibrV = preferences.getDouble("KalibrV", 0.70);
+  defaultConfig.KalibrV = preferences.getDouble("KalibrV", defaultConfig.KalibrV );
 
   if (!preferences.isKey("ClapThreshold")) {
-    preferences.putInt("ClapThreshold", 15);
+    preferences.putInt("ClapThreshold", defaultConfig.ClapThreshold );
   }
-  defaultConfig.ClapThreshold = preferences.getInt("ClapThreshold", 15);
+  defaultConfig.ClapThreshold = preferences.getInt("ClapThreshold", defaultConfig.ClapThreshold);
 
   if (!preferences.isKey("DistanceSet")) {
-    preferences.putInt("DistanceSet", 5);
+    preferences.putInt("DistanceSet", defaultConfig.DistanceSet);
   }
-  defaultConfig.DistanceSet = preferences.getInt("DistanceSet", 5);
+  defaultConfig.DistanceSet = preferences.getInt("DistanceSet", defaultConfig.DistanceSet);
 
   if (!preferences.isKey("CekejOdeslat")) {
-    preferences.putFloat("CekejOdeslat", 20.0f);
+    preferences.putFloat("CekejOdeslat", defaultConfig.CekejOdeslat);
   }
-  defaultConfig.CekejOdeslat = preferences.getFloat("CekejOdeslat", 20.0f);
+  defaultConfig.CekejOdeslat = preferences.getFloat("CekejOdeslat", defaultConfig.CekejOdeslat);
 
   if (!preferences.isKey("CekejMereni")) {
-    preferences.putFloat("CekejMereni", 4.0f);
+    preferences.putFloat("CekejMereni", defaultConfig.CekejMereni);
   }
-  defaultConfig.CekejMereni = preferences.getFloat("CekejMereni", 4.0f);
+  defaultConfig.CekejMereni = preferences.getFloat("CekejMereni", defaultConfig.CekejMereni);
 
   if (!preferences.isKey("CekejDetectClap")) {
-    preferences.putInt("CekejDetectClap", 50);
+    preferences.putInt("CekejDetectClap", defaultConfig.CekejDetectClap);
   }
-  defaultConfig.CekejDetectClap = preferences.getInt("CekejDetectClap", 50);
+  defaultConfig.CekejDetectClap = preferences.getInt("CekejDetectClap", defaultConfig.CekejDetectClap);
 
   preferences.end();  // Ukončení práce s Preferences
 }

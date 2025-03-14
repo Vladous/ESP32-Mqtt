@@ -21,6 +21,9 @@ void updateTempSensor(DefaultConfig* config) {
         Teplota = (Teplota + newValues.temperature / config->KalibrT) / 2;
         Vlhkost = (Vlhkost + newValues.humidity / config->KalibrV) / 2;
     }
+    else {
+      debugMQTT("❌ Chyba: Nepodařilo se načíst teplotu z DHT.");
+    }
 }
 
 void updateMeasureAmp(int AmpPin) {

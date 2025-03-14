@@ -26,8 +26,9 @@
 //                  Rozdělení světel a relé (Distribution of lights and relays)
 // v3.1.28.09.2024 Změna knihovny DHT na ESP32 (Changed DHT library to ESP32)
 // v3.2.27.12.2024 Přidání funkce zapnutí mávnutím (Adding activation by waving in front of the distance sensor)
-// v3.0.10.01.2025 Rozdělení na kódu na menší části
-#define VERSION "3.3"
+// v3.3.10.01.2025 Rozdělení na kódu na menší části
+// v3.4.21.01.2025 Oprava času nočního režimu , dplnění verze do settins get
+const char* VERSION = "3.5";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -129,12 +130,16 @@
 //  "KalibrV": 0.70                     // float   (volitelně), Kalibrace vlhkostního senzoru (Calibration of the humidity sensor)
 //  "DistanceSet": 5                    // int     (volitelně), Kalibrace vzdálenosti mávnutí (Calibration distance of wave detection)
 //
+//  debug/logs
+//  ----------
+//  "message": "Info"                   // String, Informační, varovné a chybové zprávy ✅  ℹ️  ⚠️ ❌
+//
 //
 // Přidat mikrotlačítko reset
 // Výber výstupu teploty °C / °F
 // Při ovládání vzdálenosti použít cm i inch
 // Doplnit podmínky na všechny dostupná místa
-//
+// !! Po restartu se nenačítá kalibrace (teploty) !!
 
 #include "config.h"
 #include "sensors.h"
@@ -167,14 +172,13 @@ char mqtt_server[40];                   // Proměnná pro MQTT IP adress (Variab
 char mqtt_port[6] = "1883";             // Proměnná pro MQTT port (A variable for the MQTT port)
 char mqtt_username[32];                 // Proměnná pro MQTT User name (Variable for MQTT User name)
 char mqtt_password[32];                 // Proměnná pro MQTT Password (Variable for MQTT Password)
+String resetReasonMessage;
 // Nastavení vstupů ESP
 const int Sw = 2;                       // Nastavení pinu pro tlačítko (Setting the pin for the button)
 const int ClapSensor = 12;              // Nastavení pinu pro zvukový senzor - mikrofon (Pin settings for sound sensor - microphone)
 
 const int trigPin = 33;                 //
 const int echoPin = 34;                 //
-//const int trigPin = 34;                 //
-//const int echoPin = 33;                 //
 
 uint8_t DHTPin = 3;
 const int AmpPin = 40;                  // Nastavení pinu pro ampérmetr (Pin settings for ammeter)
@@ -294,7 +298,7 @@ void setup() {
   }
   //TimerOdeslat.attach(defaultConfig.CekejOdeslat, Poslat);                           // Aktivuj timer pro odesílání dat (Activate timer for sending data)
   TimerOdeslat.attach(defaultConfig.CekejOdeslat, []() { Poslat(); });
-
+  debugMQTT("✅ Zařízení " + String(manualConfig.DeskName.c_str()) + " se úspěšně spustilo.");
 }
 
 void loop() {
@@ -388,6 +392,7 @@ void connectToNetwork() {
           client.subscribe(SvetloChr);                                 // Přihlášení topic kanálu zařízení
           client.subscribe(manualConfig.LedBrightnessTopic.c_str());   // Přihlášení univerzal topic kanálu jasu led
           IsConnected = true;
+          debugMQTT("Restart důvod: " + resetReasonMessage);
           return;                                                      // MQTT připojeno, ukončit funkci (MQTT connected, quit function)
         } else {
           analogWrite(LedWi, LedL);
@@ -425,16 +430,16 @@ void resetCalibreData() {
 void printResetReason() {
   esp_reset_reason_t reason = esp_reset_reason();
   switch (reason) {
-    case ESP_RST_POWERON:   Serial.println("Power on reset"); break;
-    case ESP_RST_EXT:       Serial.println("External reset"); break;
-    case ESP_RST_SW:        Serial.println("Software reset"); break;
-    case ESP_RST_PANIC:     Serial.println("Panic reset"); break;
-    case ESP_RST_INT_WDT:   Serial.println("Interrupt watchdog reset"); break;
-    case ESP_RST_TASK_WDT:  Serial.println("Task watchdog reset"); break;
-    case ESP_RST_WDT:       Serial.println("Watchdog reset"); break;
-    case ESP_RST_DEEPSLEEP: Serial.println("Deep sleep reset"); break;
-    case ESP_RST_BROWNOUT:  Serial.println("Brownout reset"); break;
-    case ESP_RST_SDIO:      Serial.println("SDIO reset"); break;
-    default:                Serial.println("Unknown reset reason"); break;
+        case ESP_RST_POWERON:   resetReasonMessage = "✅ Reset po zapnutí napájení."; break;
+        case ESP_RST_EXT:       resetReasonMessage = "⚠️ Externí reset (například tlačítkem)."; break;
+        case ESP_RST_SW:        resetReasonMessage = " ℹ️  Softwarový reset (restart vyvolaný softwarem)."; break;
+        case ESP_RST_PANIC:     resetReasonMessage = "❌ Panický reset (systémová chyba)."; break;
+        case ESP_RST_INT_WDT:   resetReasonMessage = "⚠️ Reset způsobený watchdog časovačem přerušení."; break;
+        case ESP_RST_TASK_WDT:  resetReasonMessage = "⚠️ Reset způsobený watchdog časovačem úlohy."; break;
+        case ESP_RST_WDT:       resetReasonMessage = "⚠️ Reset způsobený watchdog časovačem."; break;
+        case ESP_RST_DEEPSLEEP: resetReasonMessage = " ℹ️  Reset po probuzení z hlubokého spánku."; break;
+        case ESP_RST_BROWNOUT:  resetReasonMessage = "❌ Reset kvůli poklesu napájecího napětí."; break;
+        case ESP_RST_SDIO:      resetReasonMessage = "⚠️ Reset související s rozhraním SDIO (Bezpečné digitální vstupně-výstupní rozhraní)."; break;
+        default:                resetReasonMessage = "❓ Neznámý důvod restartu."; break;
   }
 }

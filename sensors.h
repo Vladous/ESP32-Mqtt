@@ -6,6 +6,8 @@ extern float Teplota;
 extern float Vlhkost;
 extern int PwrAmp;
 
+extern void debugMQTT(const String& message);
+
 // Inicializace senzorů
 void initTempSensor(uint8_t DHTPin);
 
