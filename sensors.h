@@ -2,9 +2,9 @@
 #define SENSORS_H
 #include <config.h>
 
-extern float Teplota;
-extern float Vlhkost;
-extern int PwrAmp;
+extern volatile float Teplota;
+extern volatile float Vlhkost;
+extern volatile int16_t PwrAmp;
 
 extern void debugMQTT(const String& message);
 

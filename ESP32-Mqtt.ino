@@ -139,7 +139,8 @@ const char* VERSION = "3.5";
 // Výber výstupu teploty °C / °F
 // Při ovládání vzdálenosti použít cm i inch
 // Doplnit podmínky na všechny dostupná místa
-// !! Po restartu se nenačítá kalibrace (teploty) !!
+// Zkontrolovat jestli relé je vždy digitalOut
+// Proměnné měněné přerušeními musí být deklarovány jako volatile
 
 #include "config.h"
 #include "sensors.h"
@@ -197,19 +198,18 @@ volatile int OZap;                      // Proměnná pro kontrolu stavu zaříz
 volatile int Zap;                       // Temp proměnná pro kontrolu stavu zařízení (Temp Variable to check device status)
 char Pwr[50];
 // Definice zařízení (Device definition)
-bool led1State = false;                 // Led svělto 1 (Led light 1)
-int led1Brightness = 255;
-bool led2State = false;                 // Led světlo 2 (Led light 2)
-int led2Brightness = 255;
-bool led3State = false;                 // Led světlo 3 (Led light 3)
-int led3Brightness = 255;
-bool ledRGBState = false;               // Led světlo RGB (Led light RGB)
-int Red = 254;
-int Green = 254;
-int Blue = 254;
-bool relayState = false;                // Relé (Relay)
-int LedL = 254;
-int PwrAmp;
+volatile bool led1State = false;        // Led svělto 1 (Led light 1)
+volatile int led1Brightness = 255;
+volatile bool led2State = false;        // Led světlo 2 (Led light 2)
+volatile int led2Brightness = 255;
+volatile bool led3State = false;        // Led světlo 3 (Led light 3)
+volatile int led3Brightness = 255;
+volatile bool ledRGBState = false;      // Led světlo RGB (Led light RGB)
+volatile int Red = 254;
+volatile int Green = 254;
+volatile int Blue = 254;
+volatile bool relayState = false;       // Relé (Relay)
+volatile int LedL = 254;
 bool IsConnected = false;
 Ticker TimerOdeslat, TimerMereni;       // Proměnné přerušení (Interrupts variables)
 
