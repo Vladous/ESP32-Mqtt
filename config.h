@@ -31,7 +31,7 @@ struct DefaultConfig {
   float KalibrV = 0.70;     
   int ClapThreshold = 15;                               // Výchozí nastavení hladiny detekce tlesknutí (Default clap detection level setting)
   float CekejOdeslat = 20.0f;                           // Výchozí nastavení prodlevy mezi odesláním dat (Default setting for the delay between sending data)
-  float CekejMereni = 4.0f;                             // Výchozí nastavení prodlevy mezi měřením DHT (Default setting for the delay between DHT measurements)
+  float CekejMereni = 2.23f;                            // Výchozí nastavení prodlevy mezi měřením DHT (Default setting for the delay between DHT measurements)
   int CekejDetectClap = 50;                             // Výchozí nastavení prodlevy mezi detekcí tlesknutí (Default setting for the delay between clap detection)
   int DistanceSet = 10;                                 // Nastavení vzdálenosti pro sepnutí
   // Kalibrace jasu kontrolek
