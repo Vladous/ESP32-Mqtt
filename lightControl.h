@@ -1,6 +1,4 @@
-#ifndef LIGHT_CONTROL_H
-#define LIGHT_CONTROL_H
-
+#pragma once
 #include <Arduino.h>
 #include "config.h"
 
@@ -25,5 +23,3 @@ extern bool PoslatOnOff;
 void IRAM_ATTR pushInterrupt();
 void detectClap(int ClapSensor);
 void checkWave(int trigPin, int echoPin, DefaultConfig* config);
-
-#endif

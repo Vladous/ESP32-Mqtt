@@ -1,5 +1,4 @@
-#ifndef SENSORS_H
-#define SENSORS_H
+#pragma once
 #include <config.h>
 
 extern volatile float Teplota;
@@ -14,5 +13,3 @@ void initTempSensor(uint8_t DHTPin);
 // Aktualizace hodnot globálních proměnných
 void updateTempSensor(DefaultConfig* config);
 void updateMeasureAmp(int AmpPin);
-
-#endif

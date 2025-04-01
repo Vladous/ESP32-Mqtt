@@ -2,6 +2,7 @@
 
 // Definice globálních proměnných
 extern DefaultConfig defaultConfig;
+extern ManualConfig manualConfig;
 extern Preferences preferences;
 extern void debugMQTT(const String& message);
 
@@ -51,4 +52,36 @@ void loadDefaultConfig() {
   defaultConfig.CekejDetectClap = preferences.getInt("CekejDetectClap", defaultConfig.CekejDetectClap);
 
   preferences.end();  // Ukončení práce s Preferences
+}
+
+String deviceList() {
+  String result = "";
+  if (manualConfig.DeviceType != DEVICE_NONE) {
+    result += "DeviceType:" + String(manualConfig.DeviceType) + " ";
+  }
+  if (manualConfig.useTlac) {
+    result += "tlacitko ";
+  }
+  if (manualConfig.Stisk != DEVICE_NONE) {
+    result += "Stisk:" + String(manualConfig.Stisk) + " ";
+  }
+  if (manualConfig.useClap) {
+    result += "tlesknuti ";
+  }
+  if (manualConfig.useWave) {
+    result += "mavnutim ";
+  }
+  if (manualConfig.useTemp) {
+    result += "teplomer ";
+  }
+  if (manualConfig.useAmpMeter) {
+    result += "proudovy_senzor ";
+  }
+  if (manualConfig.useLedBrightnessControl) {
+    result += "jas_kontrolky ";
+  }
+  if (defaultConfig.NightKontrolLed) {
+    result += "noční_režim_kontrolky od " + String(defaultConfig.NightStartHour) + ":" + String(defaultConfig.NightStartMin) + " do " + String(defaultConfig.NightEndHour) + ":" + String(defaultConfig.NightEndMin) + " ";
+  }
+  return result;
 }

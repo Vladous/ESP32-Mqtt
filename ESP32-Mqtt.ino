@@ -140,7 +140,8 @@ const char* VERSION = "3.5";
 // Při ovládání vzdálenosti použít cm i inch
 // Doplnit podmínky na všechny dostupná místa
 // Zkontrolovat jestli relé je vždy digitalOut
-// Proměnné měněné přerušeními musí být deklarovány jako volatile
+// Chybné načítámí DHT 2 → 3 ??
+
 
 #include "config.h"
 #include "sensors.h"
@@ -399,7 +400,10 @@ void connectToNetwork() {
           client.subscribe(SvetloChr);                                 // Přihlášení topic kanálu zařízení
           client.subscribe(manualConfig.LedBrightnessTopic.c_str());   // Přihlášení univerzal topic kanálu jasu led
           IsConnected = true;
-          debugMQTT("Restart důvod: " + resetReasonMessage);
+          if (resetReasonMessage != "") {
+            debugMQTT("Restart důvod: " + resetReasonMessage);
+            resetReasonMessage = "";
+          }
           return;                                                      // MQTT připojeno, ukončit funkci (MQTT connected, quit function)
         } else {
           analogWrite(LedWi, LedL);

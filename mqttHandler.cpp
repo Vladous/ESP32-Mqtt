@@ -104,6 +104,7 @@ void callbackSettingsGet() {
   DynamicJsonDocument responseDoc(512);
   responseDoc["ip"] = WiFi.localIP().toString();
   responseDoc["host"] = WIFI_HOSTNAME;
+  responseDoc["deviceList"] = deviceList();
   responseDoc["CekejOdeslat"] = defaultConfig.CekejOdeslat;
   if (manualConfig.useTemp || manualConfig.useAmpMeter) {
     responseDoc["CekejMereni"] = defaultConfig.CekejMereni;

@@ -19,14 +19,14 @@ int dhtErrorCounterV = 0;  // Počítadlo chybných měření vlhkosti
 
 void updateTempSensor(DefaultConfig* config) {  
   TempAndHumidity newValues = dht.getTempAndHumidity();  // Načtení dat z DHT senzoru
-  
+  int pocetChybnychPokusu = 3;
   // Kontrola teploty
   if (!isnan(newValues.temperature)) {  
     Teplota = (Teplota + (newValues.temperature / config->KalibrT)) / 2;
     dhtErrorCounterT = 0;  // Reset počítadla chyb pro teplotu
   } else {  
     dhtErrorCounterT++;  // Zvýšení počtu chyb
-    if (dhtErrorCounterT >= 2) {  
+    if (dhtErrorCounterT >= pocetChybnychPokusu) {  
       debugMQTT("❌ DHT Chyba: Opakované selhání načtení teploty.");
       dhtErrorCounterT = 0;  
     }
@@ -38,7 +38,7 @@ void updateTempSensor(DefaultConfig* config) {
     dhtErrorCounterV = 0;  // Reset počítadla chyb pro vlhkost
   } else {  
     dhtErrorCounterV++;  // Zvýšení počtu chyb
-    if (dhtErrorCounterV >= 2) {  
+    if (dhtErrorCounterV >= pocetChybnychPokusu) {  
       debugMQTT("❌ DHT Chyba: Opakované selhání načtení vlhkosti.");
       dhtErrorCounterV = 0;  
     }

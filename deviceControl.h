@@ -1,6 +1,4 @@
-#ifndef DEVICE_CONTROL_H
-#define DEVICE_CONTROL_H
-
+#pragma once
 #include <Arduino.h>
 #include "config.h"
 
@@ -29,5 +27,3 @@ void updateZap();
 void changeState();
 void ledKontolaZapnuti();
 void aktivaceZarizeni();
-
-#endif // DEVICE_CONTROL_H

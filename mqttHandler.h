@@ -1,6 +1,4 @@
-#ifndef MQTT_HANDLER_H
-#define MQTT_HANDLER_H
-
+#pragma once
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
@@ -50,5 +48,3 @@ void resetCalibreData();
 void resetWifiManager();
 void restartDevice();
 void debugMQTT(const String& message);
-
-#endif // MQTT_HANDLER_H
