@@ -1,0 +1,37 @@
+name: Build and Release Firmware
+
+on:
+  push:
+    tags:
+      - 'v*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v3
+
+      - name: 🛠️ Set up Arduino CLI
+        uses: arduino/setup-arduino-cli@v1
+        with:
+          version: latest
+
+      - name: 📦 Install ESP32 board platform
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+
+      - name: 🧰 Compile sketch for ESP32-S2
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32s2 ESP32-Mqtt.ino
+          mkdir -p dist
+          cp ./build/esp32.esp32.esp32s2/ESP32-Mqtt.ino.bin ./dist/
+
+      - name: 🚀 Upload compiled binary to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.bin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
