@@ -54,6 +54,14 @@ void loadDefaultConfig() {
   preferences.end();  // Ukončení práce s Preferences
 }
 
+// Funkce na vymazání uložených dat z EEPROM (Function to erase stored data from EEPROM)
+void resetCalibreData() {
+ preferences.begin(PREF_NAMESPACE, false);
+  // Vymažte všechny záznamy v Preferences
+  preferences.clear();
+  preferences.end();
+}
+
 String deviceList() {
   String result = "";
   if (manualConfig.DeviceType != DEVICE_NONE) {

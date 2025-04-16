@@ -66,43 +66,41 @@ void detectClap(int ClapSensor) {
 }
 
 // Kontrola mávnutí (mock implementace)
-void checkWave(int trigPin,int echoPin, DefaultConfig* config) {
-static bool isInRange = false; // Sledování, zda jsme aktuálně v rozsahu
+void checkWave(int trigPin, int echoPin, DefaultConfig* config) {
   static unsigned long lastMeasurementTime = 0;
-  const unsigned long measurementInterval = 100; // Interval mezi měřeními v milisekundách
+  static unsigned long waveLockTime = 0;
+  static bool wasDetected = false;
+  const unsigned long measurementInterval = 100;
+  const unsigned long lockDuration = 1000; // 1 s lock proti opakovanému mávnutí
+
   long duration;
   int distance;
 
   if (millis() - lastMeasurementTime >= measurementInterval) {
     lastMeasurementTime = millis();
 
-    // Spuštění měření
     digitalWrite(trigPin, LOW);
     delayMicroseconds(2);
     digitalWrite(trigPin, HIGH);
     delayMicroseconds(10);
     digitalWrite(trigPin, LOW);
-    duration = pulseIn(echoPin, HIGH);
+    duration = pulseIn(echoPin, HIGH, 30000); // timeout 30 ms
+
     distance = duration * 0.034 / 2;
 
-    // Ověření rozsahu měření
-    if (distance >= 1 && distance <= 400) {
-      if (distance < config->DistanceSet) {
-        // Pokud jsme v rozsahu, nastavíme isInRange na true
-        isInRange = true;
-      } else if (isInRange) {
-        // Pokud jsme opustili rozsah a dříve jsme v něm byli
-        isInRange = false;
+    if (distance > 1 && distance < config->DistanceSet) {
+      // Máme objekt v blízkosti
+      if (!wasDetected && millis() - waveLockTime > lockDuration) {
+        wasDetected = true;
+        waveLockTime = millis();
 
-        // Akce po opuštění rozsahu
-        changeState();                                                     
-        aktivaceZarizeni();                                               
-        String info = "Wave : " + String(distance) + " cm";
-        Poslat(info);
+        changeState();
+        aktivaceZarizeni();
+        Poslat("Wave: " + String(distance) + " cm");
       }
     } else {
-      // Pokud je vzdálenost mimo měřitelný rozsah
-      isInRange = false;
+      // Ruka je pryč → připrav se na novou detekci
+      wasDetected = false;
     }
   }
 }

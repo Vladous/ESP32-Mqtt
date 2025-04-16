@@ -22,7 +22,7 @@ struct ManualConfig {
   const bool useTemp = true;                            // !! CHANGE !!  Použití DHT sezoru měření teploty (Using a DHT sensor to measure temperature)
   const bool useAmpMeter = false;                       // !! CHANGE !!  Použití měření odběru (Using current draw measurement)
   const bool useLedBrightnessControl = true;            // !! CHANGE !!  Použití ovládání jasu kontrolních led
-  const String LedBrightnessTopic = "Led_brightness";   // !! CHANGE !!  Topic ovládání jasu kontrolních led
+  const String LedBrightnessTopic = "Led_brightness";
 };
 
 // Konfigurace defaultníh hodnot (Configuration defaults variables)
@@ -58,6 +58,7 @@ extern char mqtt_port[6];
 
 // Deklarace funkcí
 void loadDefaultConfig();
+void resetCalibreData();
 String deviceList();
 
 #endif

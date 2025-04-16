@@ -6,7 +6,6 @@
 //                                                                                 
 // https://github.com/Vladous/ESP32-Mqtt
 //
-// Deska Deneyap Mini (Board Deneyap Mini)
 // Deska ESP32 LOLIN S2 MINI WEMOS
 //
 // MQTT Client IoT
@@ -28,119 +27,185 @@
 // v3.2.27.12.2024 Přidání funkce zapnutí mávnutím (Adding activation by waving in front of the distance sensor)
 // v3.3.10.01.2025 Rozdělení na kódu na menší části
 // v3.4.21.01.2025 Oprava času nočního režimu , dplnění verze do settins get
-const char* VERSION = "3.5";
+// v3.5.15.04.2025 Vytvoření release
+// v4.0.16.04.2025 Vytvoření OTA pro aktualizace přes WiFi
+// v4.1.16.04.2025 Oddělení WiFi Manageru od ino
+// v4.2.16.04.2025 Přidání koontroly verze softwaru po startu na samostatný topic "version"
+const char* VERSION = "4.2";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
 //
-// ESP 32 Wroom mini S2 - Deneyap Mini
-// Mikrofon (KY-038) VCC → 3.3V , GNG → GND , A0 → GPIO34
+// ESP 32 Wroom mini S2
 //
 //
 //                          Komponenty (Components)                ESP 32 Wroom mini S2                  Komponenty (Components)
-//                       +--------------------------+             +---------------------+             +--------------------------+             +------+
-//                       |                          |             |                     |             |                  VCC     |-------------| VCC  |
-//                       |                          |-------------|-------       -------|-------------|  Měření proudu   DATA    |             |      |
-//                       |                          |             |      |       |      |             | Current measure  GND     |-------------| GND  |
-//                       |                          |             |      |       |      |             +--------------------------+             +------+
-//                       |                          |-------------| RES  1      40  39  |-------------|       Relé  Relay        |-------------| GND  |
-//  +------+             +--------------------------+             |                     |             +--------------------------+             +------+
-//  | GND  |-------------|Tlač. zapnutí (Pwr button)|-------------|-------       -------|             |                          |
-//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
-//  | VCC  |-------------|               VCC        |             |      |       |      |             |                          |
-//  |      |             |      DHT 11 - DATA       |-------------|  3   2      38  37  |             |                          |
-//  | GND  |-------------|               GND        |             |                     |             |                          |
-//  +------+             +--------------------------+             |                     |             +--------------------------+
-//  | GND  |-------------| Sv.červená (1) Light Red |-------------|-------       -------|             |                          |
-//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
-//                       |                          |             |  5   4      36  35  |             |                          |
-//  +------+             +--------------------------+             |                     |             +--------------------------+             +------+
-//  | GND  |-------------|Sv.zelená (2) Light Green |-------------|-------       -------|-------------| Echo               VCC   |-------------| VCC  |
-//  +------+             +--------------------------+             |      |       |      |             +         HC-SR4           +             |      |
-//  | GND  |-------------|      Ledka WiFi Led      |-------------|  7   6      34  33  |-------------| Trigger            GND   |-------------| GND  |
-//  +------+             +--------------------------+             |                     |             +--------------------------+             +------+
-//  | GND  |-------------| Sv.modrá (3) Light Blue  |-------------|-------       -------|             |                          |
-//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
-//  | GND  |-------------|     Ledka on/off Led     |-------------|  9   8       21  18 |             |                          |
-//  +------+             +--------------------------+             |                     |             +--------------------------+
-//                       |                          |             |-------       -------|             |                          |
-//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
-//  | GND  |-------------| Ledka napájení Led pwr   |-------------| 11   10     17  16  |             |                          |
-//  +------+             +--------------------------+             |                     |             +--------------------------+
-//                       |                          |             |-------       -------|-------------|           GND            |
-//  +------+             +--------------------------+             |      |       |      |             +--------------------------+
-//  | GND  |-------------|  Mikrofon Microphone     |-------------| 13   12     GND GND |             |                          |
-//  +------+             +--------------------------+             |                     |             +--------------------------+
-//                       |                          |             |-------       -------|             |                          |
-//                       +--------------------------+             |      |       |      |             +--------------------------+
-//                       |           VCC            |-------------| 3V2  14     15 VBUS |             |                          |
-//                       +--------------------------+             +---------------------+             +--------------------------+
+//                                                                ┏━━━━━━━━━━━━━━━━━━━━━┓             ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓             ┏━━━━━━┓
+//                                                                |                     |             |                  VCC     |━━━━━━━━━━━━━|🔋VCC |
+//                                                                |-------       -------|━━━━━━━━━━━━━|  Měření proudu   DATA    |             +------+
+//                                                                |      |       |      |             | Current measure  GND     |━━━━━━━━━━━━━|⏚ GND |
+//                                                                |      |       |      |             +--------------------------+             +------+
+//                                                                | RES  1      40  39  |━━━━━━━━━━━━━|       Relé  Relay        |━━━━━━━━━━━━━|⏚ GND |
+//  ┏━━━━━━┓             ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓             |                     |             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛             ┗━━━━━━┛
+//  |⏚ GND |━━━━━━━━━━━━━|Tlač. zapnutí (Pwr button)|━━━━━━━━━━━━━|-------       -------| 
+//  +------+             +--------------------------+             |      |       |      |
+//  |🔋VCC |━━━━━━━━━━━━━|               VCC        |             |      |       |      |
+//  +------+             |      DHT 11 - DATA       |━━━━━━━━━━━━━|  3   2      38  37  |
+//  |⏚ GND |━━━━━━━━━━━━━|               GND        |             |                     |
+//  +------+             +--------------------------+             |                     |
+//  |⏚ GND |━━━━━━━━━━━━━| 🔴 Sv.červená (1) Red   |━━━━━━━━━━━━━|-------       -------| 
+//  ┗━━━━━━┛             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛             |      |       |      |
+//                                                                |  5   4      36  35  |
+//  ┏━━━━━━┓             ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓             |                     |             ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓             ┏━━━━━━┓
+//  |⏚ GND |━━━━━━━━━━━━━| 🟢 Sv.zelená (2)  Green |━━━━━━━━━━━━━|-------       -------|━━━━━━━━━━━━━| Echo       📡      VCC   |━━━━━━━━━━━━━|🔋VCC |
+//  +------+             +--------------------------+             |      |       |      |             +         HC-SR4           +             +------+
+//  |⏚ GND |━━━━━━━━━━━━━|      Ledka WiFi Led      |━━━━━━━━━━━━━|  7   6      34  33  |━━━━━━━━━━━━━| Trigger            GND   |━━━━━━━━━━━━━|⏚ GND |
+//  +------+             +--------------------------+             |                     |             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛             ┗━━━━━━┛
+//  |⏚ GND |━━━━━━━━━━━━━| 🔵 Sv.modrá (3)   Blue  |━━━━━━━━━━━━━|-------       -------|
+//  +------+             +--------------------------+             |      |       |      |
+//  |⏚ GND |━━━━━━━━━━━━━|     Ledka on/off Led     |━━━━━━━━━━━━━|  9   8       21  18 |
+//  ┗━━━━━━┛             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛             |                     |
+//                                                                |-------       -------|
+//  ┏━━━━━━┓             ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓             |      |       |      |
+//  |⏚ GND |━━━━━━━━━━━━━| Ledka napájení Led pwr   |━━━━━━━━━━━━━| 11   10     17  16  |
+//  ┗━━━━━━┛             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛             |                     |             ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+//                                                                |-------       -------|━━━━━━━━━━━━━|          ⏚ GND           |
+//  ┏━━━━━━┓             ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓             |      |       |      |             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+//  |⏚ GND |━━━━━━━━━━━━━|  🎤 Mikrofon Microphone  |━━━━━━━━━━━━| 13   12     GND GND |
+//  ┗━━━━━━┛             ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛             |                     |
+//                                                                |-------       -------|
+//                       ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓             |      |       |      |
+//                       |        🔋 VCC           |━━━━━━━━━━━━━━| 3V2  14     15 VBUS |
+//                       ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛             ┗━━━━━━━━━━━━━━━━━━━━━┛
 //
 //
 //
-// JSON payload for sending
-// ------------------------
-// "devices": [                         // array, Pole objektů s informacemi o zařízeních (An array of objects with device information)
-//   {
-//     "device": "LED1",                // string, Typ zařízení LED1, LED2, LED3 (Device type)
-//     "state": "on",                   // string, Stav zařízení "on" nebo "off" (Device state "on" or "off")
-//     "brightness": 128                // integer (volitelně), Jas zařízení, 0 - 255 (Device brightness)
-//   },
-//   {
-//     "device": "RGB",
-//     "state": "on",
-//     "spectrumRGB": [255, 0, 0]       // integer array (volitelně), Hodnoty RGB, 0 - 255 (RGB values)
-//   },
-//   {
-//     "device": "RELAY",               // string, Typ zařízení (Device type)
-//     "state": "on"                    // string, Stav zařízení "on" nebo "off" (Device state "on" or "off")
-//   }
-// ],
-// "temp": 21.2,                        // float (volitelně), Naměřená teplota ve stupních Celsia (Measured temperature in degrees Celsius)
-// "hum": 54.6,                         // float (volitelně), Naměřená relativní vlhkost v procentech (Measured relative humidity in percent)
-// "Amp": 512,                          // integer (volitelně), Naměřená hodnota z ampérmetru (Measured value from the ammeter)
-// "signal": -60,                       // integer, Síla signálu WiFi, RSSI v dBm (WiFi signal strength, RSSI in dBm)
-// "bssid": "00:11:22:33:44:55",        // string, MAC adresa WiFi hotspotu (The MAC address of the WiFi hotspot)
+// ****************************************************************************************
+// MQTT JSON DOKUMENTACE – přehled struktury pro komunikaci s ESP zařízeními
+// Autor: Generováno na základě aktuální implementace mqttHandler.cpp
+// ****************************************************************************************
 //
-// "settings": "get",
-//  "ip": "192.168.1.1",                // string, IP adresa zařízení (IP address of the device)
-//  "host": "ESP_HOST",                 // string, Hostname zařízení (Hostname device)
-//  "ClapThreshold": 900,               // integer, Práh pro detekci tlesknutí (Threshold for clap detection)
-//  "CekejOdeslat": 20.0,               // float, Časový interval čekání na odeslání (v sekundách) (Time interval waiting for sending (in seconds))
-//  "CekejMereni": 4.0,                 // float, Časový interval čekání na měření (v sekundách) (Time interval waiting for measurement (in seconds))
-//  "CekejDetectClap": 50,              // integer, Časový interval pro detekci tlesknutí (v milisekundách) (Time interval for clap detection (in milliseconds))
-//  "KalibrT": 1.33,                    // float, Kalibrace teplotního senzoru (Temperature sensor calibration)
-//  "KalibrV": 0.70                     // float, Kalibrace vlhkostního senzoru (Calibration of the humidity sensor)
-//  "DistanceSet": 5                    // int, Kalibrace vzdálenosti mávnutí (Calibration distance of wave detection)
-//  "TeplotaChip" : 50                  // float, Teplota čipu ESP ve °C (ESP chip temperature in °C)
+// 📤 1. ODESÍLÁNÍ DAT Z ESP (funkce Poslat())
+// --------------------------------------------
 //
-// JSON callback
-// -------------
-// "device": "DEVICE_NAME",             // string, Typ zařízení ("LED1", "LED2", "LED3", "RGB", "RELAY") (Device type)
-// "state": "on",                       // string, Požadovaný stav zařízení, "on" nebo "off" (Desired device status)
-// "brightness": 128,                   // integer (volitelně), Hodnota jasu LED světla, 0 - 255 (Brightness value of the LED light)
-// "spectrumRGB": [255, 0, 0],          // integer array (volitelně), Pole tří hodnot RGB, 0 - 255 (An array of three RGB values)
+// Odesíláno automaticky nebo po vyžádání ("settings": "get").
+// Hodnoty závisí na aktivovaných modulech (manualConfig).
 //
-// "settings": "set",                   // string, Určuje akci, "set" pro nastavení, "get" pro získání nastavení (Specifies the action, "set" for setting, "get" for getting the setting)
-//  "ClapThreshold": 900,               // integer (volitelně), Prah pro detekci tlesknutí (Threshold for clap detection)
-//  "CekejOdeslat": 20.0,               // float   (volitelně), Časový interval čekání na odeslání (v sekundách) (Time interval waiting for sending (in seconds))
-//  "CekejMereni": 4.0,                 // float   (volitelně), Časový interval čekání na měření (v sekundách) (Time interval waiting for measurement (in seconds))
-//  "CekejDetectClap": 50,              // integer (volitelně), Časový interval pro detekci tlesknutí (v milisekundách) (Time interval for clap detection (in milliseconds))
-//  "KalibrT": 1.33,                    // float   (volitelně), Kalibrace teplotního senzoru  (Temperature sensor calibration)
-//  "KalibrV": 0.70                     // float   (volitelně), Kalibrace vlhkostního senzoru (Calibration of the humidity sensor)
-//  "DistanceSet": 5                    // int     (volitelně), Kalibrace vzdálenosti mávnutí (Calibration distance of wave detection)
+// {
+//   "devices": [                           // array, Pole zařízení se stavem
+//     {
+//       "device": "LED1",                  // string, Název zařízení (LED1, LED2, LED3, RGB, RELAY)
+//       "state": "on",                     // string, Stav zařízení ("on"/"off")
+//       "brightness": 128                  // integer (volitelně), Jas (0–255)
+//     },
+//     {
+//       "device": "RGB",
+//       "state": "on",
+//       "spectrumRGB": [255, 0, 0]         // integer[3] (volitelně), RGB složky (0–255)
+//     },
+//     {
+//       "device": "RELAY",
+//       "state": "off"
+//     }
+//   ],
+//   "temp": 21.2,                          // float (volitelně), Teplota ze senzoru (°C)
+//   "hum": 54.6,                           // float (volitelně), Vlhkost ze senzoru (%)
+//   "Amp": 512,                            // integer (volitelně), Proud z ampérmetru
+//   "signal": -60,                         // integer, Síla WiFi signálu (RSSI v dBm)
+//   "bssid": "00:11:22:33:44:55",          // string, MAC adresa přístupového bodu
+//   "ip": "192.168.1.10",                  // string, Lokální IP adresa ESP
+//   "host": "ESP_HOSTNAME",                // string, Název zařízení
+//   "TeplotaChip": 48.2,                   // float, Interní teplota čipu ESP
+//   "Verze": "1.0.0",                      // string, Verze firmware
+//   "settings": "get"                      // string, Typ zprávy – informativní
+// }
 //
-//  debug/logs
-//  ----------
-//  "message": "Info"                   // String, Informační, varovné a chybové zprávy ✅  ℹ️  ⚠️ ❌
+// 📥 2. PŘÍCHOZÍ DATA (MQTT callback())
+// --------------------------------------------
+//
+// A) Ovládání zařízení
+// --------------------
+// {
+//   "device": "LED1",                      // string, Název zařízení
+//   "state": "on",                         // string, Požadovaný stav ("on"/"off")
+//   "brightness": 128                      // integer (volitelně), Jas (0–255)
+// }
+//
+// {
+//   "device": "RGB",
+//   "state": "on",
+//   "spectrumRGB": [255, 0, 0]             // integer[3], RGB barvy
+// }
+//
+// B) Nastavení konfigurace ("settings": "set")
+// --------------------------------------------
+// {
+//   "settings": "set",                     // string, Příkaz pro nastavení
+//   "ClapThreshold": 900,                  // integer (volitelně), Práh pro tlesknutí
+//   "CekejOdeslat": 20.0,                  // float (volitelně), Interval odesílání (s)
+//   "CekejMereni": 4.0,                    // float (volitelně), Interval měření (s)
+//   "CekejDetectClap": 50,                 // integer (volitelně), Prodleva po tlesknutí (ms)
+//   "KalibrT": 1.33,                       // float (volitelně), Kalibrace teploty
+//   "KalibrV": 0.70,                       // float (volitelně), Kalibrace vlhkosti
+//   "DistanceSet": 5                       // integer (volitelně), Vzdálenost pro mávnutí
+// }
+//
+// C) Vyžádání nastavení ("settings": "get")
+// --------------------------------------------
+// {
+//   "settings": "get"                      // string, Žádost o zaslání aktuálních hodnot
+// }
+//
+// Odpověď ESP:
+// {
+//   "ip": "192.168.1.10",
+//   "host": "ESP_HOST",
+//   "deviceList": [...],                   // seznam zařízení (např. ["LED1", "RGB"])
+//   "CekejOdeslat": 20.0,
+//   "CekejMereni": 4.0,
+//   "KalibrT": 1.33,
+//   "KalibrV": 0.70,
+//   "ClapThreshold": 900,
+//   "CekejDetectClap": 50,
+//   "DistanceSet": 5,
+//   "TeplotaChip": 48.2,
+//   "Verze": "1.0.0"
+// }
+//
+// D) Systémové příkazy
+// --------------------------------------------
+// { "reset": true }                        // Reset kalibrací a WiFi
+// { "restart": true }                      // Restart zařízení
+// { "help": true }                         // Vrací JSON s nápovědou možných nastavení
+//
+// 🪵 3. LOGY (debugMQTT())
+// --------------------------------------------
+// {
+//   "device": "SvetloChr",                 // string, MQTT identifikátor zařízení
+//   "message": "❌ Chyba deserializace..." // string, Popis chyby nebo stavu
+// }
 //
 //
+// 📦 4. VERZE FIRMWARE (reportFirmwareVersion())
+// --------------------------------------------
+// Odesíláno jednorázově (např. při spuštění) do topicu "version"
+// s parametrem retained = true (zachováno na brokeru)
+//
+// {
+//   "device": "ESP_HOST",                  // string, Název zařízení (hostname)
+//   "version": "1.0"                       // string, Verze firmwaru
+// }
+//
+// Používá se pro zobrazení verze na centrálním řídicím serveru
+//
+// ****************************************************************************************
+
+// ToDo
 // Přidat mikrotlačítko reset
 // Výber výstupu teploty °C / °F
 // Při ovládání vzdálenosti použít cm i inch
 // Doplnit podmínky na všechny dostupná místa
 // Zkontrolovat jestli relé je vždy digitalOut
-// Chybné načítámí DHT 2 → 3 ??
 
 
 #include "config.h"
@@ -148,71 +213,68 @@ const char* VERSION = "3.5";
 #include "lightControl.h"
 #include "deviceControl.h"
 #include "mqttHandler.h"
-#include <PubSubClient.h>               // https://github.com/knolleary/pubsubclient
-#include <WiFi.h>                       // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
-#include <WiFiManager.h>                // https://github.com/tzapu/WiFiManager
-#include <ArduinoJson.h>                // https://github.com/bblanchon/ArduinoJson
-#include <Preferences.h>                // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
-#include <Ticker.h>                     // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
-#include <esp_system.h>                 // Zobrazení příčiny restartu (Display the reason for the restart)
+#include "wifiManagerHandler.h"
+#include "ota.h"
+#include <PubSubClient.h>                                              // https://github.com/knolleary/pubsubclient
+#include <WiFi.h>                                                      // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
+#include <ArduinoJson.h>                                               // https://github.com/bblanchon/ArduinoJson
+#include <Preferences.h>                                               // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
+#include <Ticker.h>                                                    // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
+#include <esp_system.h>                                                // Zobrazení příčiny restartu (Display the reason for the restart)
 
-ManualConfig manualConfig;              // Použije výchozí hodnoty definované v `ManualConfig`      (config.h)
-DefaultConfig defaultConfig;            // Použije výchozí hodnoty definované v `DefaultConfig`     (config.h)
-//WiFiManagerConfig wifiManagerConfig;    // Použije výchozí hodnoty definované v `WiFiManagerConfig` (config.h)
-WiFiClient espClient;                   // Inicializace WiFi   (Wi-Fi initializacion)
-PubSubClient client(espClient);         // Inicializace MQTT   (MQTT initializacion)
-Preferences preferences;                // Inicializace EEprom (EEprom initializacion)
-WiFiManager wifiManager;
+ManualConfig manualConfig;                                             // Použije výchozí hodnoty definované v `ManualConfig`      (config.h)
+DefaultConfig defaultConfig;                                           // Použije výchozí hodnoty definované v `DefaultConfig`     (config.h)
+WiFiClient espClient;                                                  // Inicializace WiFi   (Wi-Fi initializacion)
+PubSubClient client(espClient);                                        // Inicializace MQTT   (MQTT initializacion)
+Preferences preferences;                                               // Inicializace EEprom (EEprom initializacion)
 
-const char* PREF_NAMESPACE = "mqtt-app";// Jmenný prostor EEPROM (EEPROM namespace)
-const char mqtt_ip[] = "192.168.1.1";   // Defaultní adresa MQTT serveru (Lze nastavit přes WiFiManager) (Default MQTT server address (Can be set via WiFiManager))
+const char* PREF_NAMESPACE = "mqtt-app";                               // Jmenný prostor EEPROM (EEPROM namespace)
+const char mqtt_ip[] = "192.168.1.1";                                  // Defaultní adresa MQTT serveru (Lze nastavit přes WiFiManager) (Default MQTT server address (Can be set via WiFiManager))
 const char* WIFI_HOSTNAME = manualConfig.DeskName.c_str();
-char ssid[32];                          // Proměnná pro SSID (Variable for SSID)
-char password[32];                      // Proměnná pro heslo (Variable for password)
+char ssid[32];                                                         // Proměnná pro SSID (Variable for SSID)
+char password[32];                                                     // Proměnná pro heslo (Variable for password)
 // Mqtt proměnné nastavení
-char mqtt_server[40];                   // Proměnná pro MQTT IP adress (Variable for MQTT IP adress)
-char mqtt_port[6] = "1883";             // Proměnná pro MQTT port (A variable for the MQTT port)
-char mqtt_username[32];                 // Proměnná pro MQTT User name (Variable for MQTT User name)
-char mqtt_password[32];                 // Proměnná pro MQTT Password (Variable for MQTT Password)
+char mqtt_server[40];                                                  // Proměnná pro MQTT IP adress (Variable for MQTT IP adress)
+char mqtt_port[6] = "1883";                                            // Proměnná pro MQTT port (A variable for the MQTT port)
+char mqtt_username[32];                                                // Proměnná pro MQTT User name (Variable for MQTT User name)
+char mqtt_password[32];                                                // Proměnná pro MQTT Password (Variable for MQTT Password)
 String resetReasonMessage;
 // Nastavení vstupů ESP
-const int Sw = 2;                       // Nastavení pinu pro tlačítko (Setting the pin for the button)
-const int ClapSensor = 12;              // Nastavení pinu pro zvukový senzor - mikrofon (Pin settings for sound sensor - microphone)
-
-const int trigPin = 33;                 //
-const int echoPin = 34;                 //
-
+const int Sw = 2;                                                      // Nastavení pinu pro tlačítko (Setting the pin for the button)
+const int ClapSensor = 12;                                             // Nastavení pinu pro zvukový senzor - mikrofon (Pin settings for sound sensor - microphone)
+const int trigPin = 33;                                                //
+const int echoPin = 34;                                                //
 uint8_t DHTPin = 3;
-const int AmpPin = 40;                  // Nastavení pinu pro ampérmetr (Pin settings for ammeter)
+const int AmpPin = 40;                                                 // Nastavení pinu pro ampérmetr (Pin settings for ammeter)
 // Výstupy kontrolky led
-const int LedPWR = 11;                  // Nastavení pinu pro led kontrolku napájení (Setting the pin for the power LED)
-const int LedWi = 7;                    // Nastavení pinu pro led kontrolku připojení WiFI (Setting the pin for the WiFI connection led indicator)
-const int PwrSw = 9;                    // Nastavení pinu pro led kontrolku on/off (Setting the pin for the on/off led indicator)
+const int LedPWR = 11;                                                 // Nastavení pinu pro led kontrolku napájení (Setting the pin for the power LED)
+const int LedWi = 7;                                                   // Nastavení pinu pro led kontrolku připojení WiFI (Setting the pin for the WiFI connection led indicator)
+const int PwrSw = 9;                                                   // Nastavení pinu pro led kontrolku on/off (Setting the pin for the on/off led indicator)
 // Výstupy ovládání
-const int Re = 39;                      // Nastavení pinu pro relé (Pin settings for the relay)
-const int PwrRed = 4;                   // Nastavení pinu pro led (červená) / Světlo 1 (Pin settings for LED (Red)   / Light 1)
-const int PwrGreen = 6;                 // Nastavení pinu pro led (zelená)  / Světlo 2 (Pin settings for LED (Green) / Light 2)
-const int PwrBlue = 8;                  // Nastavení pinu pro led (modrá)   / Světlo 3 (Pin settings for Led (Blue)  / Light 3)
+const int Re = 39;                                                     // Nastavení pinu pro relé (Pin settings for the relay)
+const int PwrRed = 4;                                                  // Nastavení pinu pro led (červená) / Světlo 1 (Pin settings for LED (Red)   / Light 1)
+const int PwrGreen = 6;                                                // Nastavení pinu pro led (zelená)  / Světlo 2 (Pin settings for LED (Green) / Light 2)
+const int PwrBlue = 8;                                                 // Nastavení pinu pro led (modrá)   / Světlo 3 (Pin settings for Led (Blue)  / Light 3)
 int Value = 0;
 char SvetloChr[50];
-volatile int OZap;                      // Proměnná pro kontrolu stavu zařízení (A variable to check the status of the device)
-volatile int Zap;                       // Temp proměnná pro kontrolu stavu zařízení (Temp Variable to check device status)
+volatile int OZap;                                                     // Proměnná pro kontrolu stavu zařízení (A variable to check the status of the device)
+volatile int Zap;                                                      // Temp proměnná pro kontrolu stavu zařízení (Temp Variable to check device status)
 char Pwr[50];
 // Definice zařízení (Device definition)
-volatile bool led1State = false;        // Led svělto 1 (Led light 1)
+volatile bool led1State = false;                                       // Led svělto 1 (Led light 1)
 volatile int led1Brightness = 255;
-volatile bool led2State = false;        // Led světlo 2 (Led light 2)
+volatile bool led2State = false;                                       // Led světlo 2 (Led light 2)
 volatile int led2Brightness = 255;
-volatile bool led3State = false;        // Led světlo 3 (Led light 3)
+volatile bool led3State = false;                                       // Led světlo 3 (Led light 3)
 volatile int led3Brightness = 255;
-volatile bool ledRGBState = false;      // Led světlo RGB (Led light RGB)
+volatile bool ledRGBState = false;                                     // Led světlo RGB (Led light RGB)
 volatile int Red = 254;
 volatile int Green = 254;
 volatile int Blue = 254;
-volatile bool relayState = false;       // Relé (Relay)
+volatile bool relayState = false;                                      // Relé (Relay)
 volatile int LedL = 254;
 bool IsConnected = false;
-Ticker TimerOdeslat, TimerMereni;       // Proměnné přerušení (Interrupts variables)
+Ticker TimerOdeslat, TimerMereni;                                      // Proměnné přerušení (Interrupts variables)
 
 void setup() {
   analogSetAttenuation(ADC_11db);                                      // Nastavení attenuace pro širší rozsah měření (Attenuation setting for wider measurement range)
@@ -245,33 +307,8 @@ void setup() {
   // (If you want to clear all saved wifiManager information, uncomment the following line and run it again)
   // resetWifiManager();
 
-  // Přidání parametrů do WiFiManager portálu. (Adding parameters to the WiFiManager portal.)
-  WiFiManagerParameter custom_mqtt_server("server", "mqtt server", mqtt_server, 40);
-  WiFiManagerParameter custom_mqtt_port("port", "mqtt port", mqtt_port, 6);
-  //WiFiManagerParameter custom_mqtt_username("user", "mqtt user", mqtt_username, 32);
-  //WiFiManagerParameter custom_mqtt_password("password", "mqtt password", mqtt_password, 32);
-  wifiManager.addParameter(&custom_mqtt_server);
-  wifiManager.addParameter(&custom_mqtt_port);
-  //wifiManager.addParameter(&custom_mqtt_username);
-  //wifiManager.addParameter(&custom_mqtt_password);
-  WiFi.setHostname(WIFI_HOSTNAME);
-  String apName = String(WIFI_HOSTNAME) + "_AP";
-  if (wifiManager.autoConnect(apName.c_str())) {
-    // Připojení proběhlo úspěšně, teď uložíme hodnoty do proměnných (The connection was successful, now we will store the values ​​in the variables)
-    strcpy(ssid, WiFi.SSID().c_str());
-    strcpy(password, WiFi.psk().c_str());
-    strcpy(mqtt_server, custom_mqtt_server.getValue());
-    strcpy(mqtt_port, custom_mqtt_port.getValue());
-    //strcpy(mqtt_username, custom_mqtt_username.getValue());
-    //strcpy(mqtt_password, custom_mqtt_password.getValue());
-    preferences.begin(PREF_NAMESPACE, false);  // Inicializace Preferences s jmenným prostorem
-    preferences.putString("mqtt_server", mqtt_server);
-    preferences.putString("mqtt_port", mqtt_port);
-    preferences.end();
-  } else {
-    Serial.println("Nepodařilo se připojit - vypršel časový limit");
-    ESP.restart();
-  }
+  setupWiFi();
+  initOTA(WIFI_HOSTNAME);
   // Pokud se dostanete až sem, jste připojeni k WiFi (If you get this far, you're connected to WiFi)
   Serial.println("Připojeno k WiFi");
   if (strcmp(mqtt_server, "") == 0) {
@@ -292,17 +329,18 @@ void setup() {
 
   manualConfig.DeskName.toCharArray(SvetloChr, manualConfig.DeskName.length() + 1);
   connectToNetwork();                                                  // Volání nové funkce pro připojení k nastavené WiFi a MQTT (Calling a new function to connect to the set WiFi and MQTT)
+  reportFirmwareVersion();
   Serial.println("Moje IP adresa je:");
   Serial.println(WiFi.localIP());
   if (manualConfig.useTemp or manualConfig.useAmpMeter) {              // Pokud je zapnuto měřění teploty, nebo ampermetr aktivuj timer (If the temperature measurement or the ammeter is switched on, activate the timer)
     TimerMereni.attach(defaultConfig.CekejMereni, tempAndAmpMeter);
   }
-  //TimerOdeslat.attach(defaultConfig.CekejOdeslat, Poslat);                           // Aktivuj timer pro odesílání dat (Activate timer for sending data)
-  TimerOdeslat.attach(defaultConfig.CekejOdeslat, []() { Poslat(); });
+  TimerOdeslat.attach(defaultConfig.CekejOdeslat, []() { Poslat(); }); // Aktivuj timer pro odesílání dat (Activate timer for sending data)
   debugMQTT("✅ Zařízení " + String(manualConfig.DeskName.c_str()) + " se úspěšně spustilo.");
 }
 
 void loop() {
+  handleOTA();
   OZap = Zap;
   if (!IsConnected) {
     connectToNetwork();                                                // Opětovné připojení k WiFi (Reconnect to WiFi)
@@ -312,9 +350,7 @@ void loop() {
   if (PoslatOnOff) {
     Poslat();
     PoslatOnOff = false;
-  }
-  
-  
+  }  
   int LedBright = LedL;
   if (defaultConfig.NightKontrolLedEnable) {
     LedBright = LedBright /10;
@@ -365,7 +401,7 @@ void connectToNetwork() {
   const unsigned long retryInterval = 2000; // 2 sekundy mezi pokusy
 
   if (millis() - lastAttemptTime < retryInterval) {
-    return; // Pokud ještě neuplynul interval, neprováděj další pokus
+    return;                                                            // Pokud ještě neuplynul interval, neprováděj další pokus
   }
   
   // Vyhledání nejsilnějšího připojení (Finding the strongest connection)
@@ -420,21 +456,8 @@ void connectToNetwork() {
   }
 }
 
-// Funkce na vymazání uložených dat z WiFiManageru (Function to delete saved data from WiFiManager)
-void resetWifiManager() {
-  wifiManager.resetSettings();
-}
-
 void restartDevice() {
     ESP.restart();                                                     // Restart zařízení
-}
-
-// Funkce na vymazání uložených dat z EEPROM (Function to erase stored data from EEPROM)
-void resetCalibreData() {
- preferences.begin(PREF_NAMESPACE, false);
-  // Vymažte všechny záznamy v Preferences
-  preferences.clear();
-  preferences.end();
 }
 
 // Funkce na vypsání výjimek restartu (Function to list restart exceptions)
@@ -453,4 +476,5 @@ void printResetReason() {
         case ESP_RST_SDIO:      resetReasonMessage = "⚠️ Reset související s rozhraním SDIO (Bezpečné digitální vstupně-výstupní rozhraní)."; break;
         default:                resetReasonMessage = "❓ Neznámý důvod restartu."; break;
   }
+}
 }

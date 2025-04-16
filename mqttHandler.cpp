@@ -289,3 +289,8 @@ void debugMQTT(const String& message) {
   String messageJson = "{\"device\":\"" + String(SvetloChr) + "\",\"message\":\"" + message + "\"}";
   client.publish("logs", messageJson.c_str());
 }
+
+void reportFirmwareVersion() {
+  String payload = "{\"device\":\"" + String(WIFI_HOSTNAME) + "\",\"version\":\"" + String(VERSION) + "\"}";
+  client.publish("version", 0, true, payload.c_str());
+}

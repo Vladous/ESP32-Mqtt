@@ -48,3 +48,4 @@ void resetCalibreData();
 void resetWifiManager();
 void restartDevice();
 void debugMQTT(const String& message);
+void reportFirmwareVersion();
