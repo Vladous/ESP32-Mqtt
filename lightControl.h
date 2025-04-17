@@ -23,3 +23,5 @@ extern bool PoslatOnOff;
 void IRAM_ATTR pushInterrupt();
 void detectClap(int ClapSensor);
 void checkWave(int trigPin, int echoPin, DefaultConfig* config);
+void extendedSwitchDispatcher();
+void zpracujZmenuStavu();

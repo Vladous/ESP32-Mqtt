@@ -31,7 +31,8 @@
 // v4.0.16.04.2025 Vytvoření OTA pro aktualizace přes WiFi
 // v4.1.16.04.2025 Oddělení WiFi Manageru od ino
 // v4.2.16.04.2025 Přidání koontroly verze softwaru po startu na samostatný topic "version"
-const char* VERSION = "4.2";
+// v4.3.17.04.2025 Ještě drobné rozdělení kódu + bugFix
+const char* VERSION = "4.3";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -215,10 +216,11 @@ const char* VERSION = "4.2";
 #include "mqttHandler.h"
 #include "wifiManagerHandler.h"
 #include "ota.h"
+#include "initSystem.h"
+#include "devicePins.h"
+#include "stateControl.h"
 #include <PubSubClient.h>                                              // https://github.com/knolleary/pubsubclient
 #include <WiFi.h>                                                      // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
-#include <ArduinoJson.h>                                               // https://github.com/bblanchon/ArduinoJson
-#include <Preferences.h>                                               // https://github.com/espressif/arduino-esp32/tree/master/libraries/Preferences
 #include <Ticker.h>                                                    // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
 #include <esp_system.h>                                                // Zobrazení příčiny restartu (Display the reason for the restart)
 
@@ -239,104 +241,21 @@ char mqtt_port[6] = "1883";                                            // Promě
 char mqtt_username[32];                                                // Proměnná pro MQTT User name (Variable for MQTT User name)
 char mqtt_password[32];                                                // Proměnná pro MQTT Password (Variable for MQTT Password)
 String resetReasonMessage;
-// Nastavení vstupů ESP
-const int Sw = 2;                                                      // Nastavení pinu pro tlačítko (Setting the pin for the button)
-const int ClapSensor = 12;                                             // Nastavení pinu pro zvukový senzor - mikrofon (Pin settings for sound sensor - microphone)
-const int trigPin = 33;                                                //
-const int echoPin = 34;                                                //
-uint8_t DHTPin = 3;
-const int AmpPin = 40;                                                 // Nastavení pinu pro ampérmetr (Pin settings for ammeter)
-// Výstupy kontrolky led
-const int LedPWR = 11;                                                 // Nastavení pinu pro led kontrolku napájení (Setting the pin for the power LED)
-const int LedWi = 7;                                                   // Nastavení pinu pro led kontrolku připojení WiFI (Setting the pin for the WiFI connection led indicator)
-const int PwrSw = 9;                                                   // Nastavení pinu pro led kontrolku on/off (Setting the pin for the on/off led indicator)
-// Výstupy ovládání
-const int Re = 39;                                                     // Nastavení pinu pro relé (Pin settings for the relay)
-const int PwrRed = 4;                                                  // Nastavení pinu pro led (červená) / Světlo 1 (Pin settings for LED (Red)   / Light 1)
-const int PwrGreen = 6;                                                // Nastavení pinu pro led (zelená)  / Světlo 2 (Pin settings for LED (Green) / Light 2)
-const int PwrBlue = 8;                                                 // Nastavení pinu pro led (modrá)   / Světlo 3 (Pin settings for Led (Blue)  / Light 3)
 int Value = 0;
 char SvetloChr[50];
-volatile int OZap;                                                     // Proměnná pro kontrolu stavu zařízení (A variable to check the status of the device)
-volatile int Zap;                                                      // Temp proměnná pro kontrolu stavu zařízení (Temp Variable to check device status)
 char Pwr[50];
-// Definice zařízení (Device definition)
-volatile bool led1State = false;                                       // Led svělto 1 (Led light 1)
-volatile int led1Brightness = 255;
-volatile bool led2State = false;                                       // Led světlo 2 (Led light 2)
-volatile int led2Brightness = 255;
-volatile bool led3State = false;                                       // Led světlo 3 (Led light 3)
-volatile int led3Brightness = 255;
-volatile bool ledRGBState = false;                                     // Led světlo RGB (Led light RGB)
-volatile int Red = 254;
-volatile int Green = 254;
-volatile int Blue = 254;
-volatile bool relayState = false;                                      // Relé (Relay)
-volatile int LedL = 254;
-bool IsConnected = false;
 Ticker TimerOdeslat, TimerMereni;                                      // Proměnné přerušení (Interrupts variables)
 
-void setup() {
-  analogSetAttenuation(ADC_11db);                                      // Nastavení attenuace pro širší rozsah měření (Attenuation setting for wider measurement range)
-  analogReadResolution(12);                                            // Nastavení rozlišení ADC na 12 bitů (Setting the ADC resolution to 12 bits)
-  pinMode(LedPWR, OUTPUT);                                             // Výstup aktivace pinu pro kontrolku led (červená) power (Pin activation output for led (red) power)
-  pinMode(LedWi, OUTPUT);                                              // Výstup aktivace pinu pro kontrolku led (modrá) připojení k WiFi a MQTT (Pin activation output for led (blue) connection to WiFi and MQTT)
-  pinMode(PwrSw, OUTPUT);                                              // Výstup aktivace pinu pro kontrolku led (zelená) zapnutí/vypnutí (Pin activation output for led (green) on/off)
-  pinMode(Re, OUTPUT);                                                 // Výstup aktivace pinu pro relé (Pin enable output for relay)
-  pinMode(PwrRed, OUTPUT);                                             // Výstup aktivace pinu světla (červená / světlo 1) (Light Pin Enable Output (Red   / Light 1))
-  pinMode(PwrGreen, OUTPUT);                                           // Výstup aktivace pinu světla (zelená  / světlo 2) (Light Pin Enable Output (Green / Light 2))
-  pinMode(PwrBlue, OUTPUT);                                            // Výstup aktivace pinu světla (modrá   / světlo 3) (Light Pin Enable Output (Blue  / Light 3))
-  pinMode(ClapSensor, INPUT);                                          // Vstup aktivace pinu Mikrofon (Microphone pin enable input)
-  pinMode(AmpPin, INPUT);                                              // Vstup aktivace pinu Ampermetr (Ammeter pin activation input)
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  analogWrite(LedPWR, LedL);                                           // Zapnutí kontrolky (červená) připojení ke zdroji (Turning on the light (red) connecting to the source)
-  Serial.begin(9600);
-  delay(1500);
-  printResetReason();                                                  // Vypsání příčiny restartu (Listing the cause of the restart)
-  if (manualConfig.useTlac) {
-    pinMode(Sw, INPUT_PULLUP);                                         // PullUp výstup nastavení pinu pro Tlačítko (PullUp output setting pin for Button)
-    attachInterrupt(digitalPinToInterrupt(Sw), pushInterrupt, FALLING);// Aktivace přerušení na spadání hrany pro tlačítko (Activating break on falling edge for button)
-  }
-  if (manualConfig.useTemp) {
-    initTempSensor(DHTPin);
-  }
+void setup() {  
+  initPins();  
+  initSerial();  
+  printResetReason();                                                  // Vypsání příčiny restartu (Listing the cause of the restart)  
+  initInputs();  
+  initSensors();  
   loadDefaultConfig();
-
-  // Pokud chcete vymazat všechny uložené informace wifiManageru, odkomentujte následující řádku a spusťte jej znovu
-  // (If you want to clear all saved wifiManager information, uncomment the following line and run it again)
-  // resetWifiManager();
-
-  setupWiFi();
-  initOTA(WIFI_HOSTNAME);
-  // Pokud se dostanete až sem, jste připojeni k WiFi (If you get this far, you're connected to WiFi)
-  Serial.println("Připojeno k WiFi");
-  if (strcmp(mqtt_server, "") == 0) {
-    strlcpy(mqtt_server, mqtt_ip, sizeof(mqtt_server));                // Pokud se nenačte z EEPROM nastaví default (If it is not read from the EEPROM, the default will be set)
-    Serial.println("Chyba načtení MQTT serveru z EEPROM");
-  }
-  if (strcmp(mqtt_port, "") == 0) {
-    strlcpy(mqtt_port, "1883", sizeof(mqtt_port));                     // Pokud se nenačte z EEPROM, nastaví default (If it is not read from the EEPROM, the default will be set)
-    Serial.println("Chyba načtení MQTT portu z EEPROM");
-  }
-  Serial.print("MQTT server: ");
-  Serial.println(mqtt_server);
-  Serial.print("MQTT port: ");
-  Serial.println(mqtt_port);
-
-  client.setServer(mqtt_server, atoi(mqtt_port));
-  client.setCallback(callback);
-
-  manualConfig.DeskName.toCharArray(SvetloChr, manualConfig.DeskName.length() + 1);
-  connectToNetwork();                                                  // Volání nové funkce pro připojení k nastavené WiFi a MQTT (Calling a new function to connect to the set WiFi and MQTT)
-  reportFirmwareVersion();
-  Serial.println("Moje IP adresa je:");
-  Serial.println(WiFi.localIP());
-  if (manualConfig.useTemp or manualConfig.useAmpMeter) {              // Pokud je zapnuto měřění teploty, nebo ampermetr aktivuj timer (If the temperature measurement or the ammeter is switched on, activate the timer)
-    TimerMereni.attach(defaultConfig.CekejMereni, tempAndAmpMeter);
-  }
-  TimerOdeslat.attach(defaultConfig.CekejOdeslat, []() { Poslat(); }); // Aktivuj timer pro odesílání dat (Activate timer for sending data)
-  debugMQTT("✅ Zařízení " + String(manualConfig.DeskName.c_str()) + " se úspěšně spustilo.");
+  initConnection();  
+  initTimers();
+  reportStatus();
 }
 
 void loop() {
@@ -366,26 +285,6 @@ void loop() {
   if (Zap > 0) {
     analogWrite(PwrSw, LedBright / defaultConfig.KalibrKontrolGreen);
   }  
-}
-
-// 
-void extendedSwitchDispatcher() {
-  if (manualConfig.useClap) {
-    detectClap(ClapSensor);
-  }
-  if (manualConfig.useWave) {
-    checkWave(trigPin, echoPin, &defaultConfig);
-  }
-}
-
-// Načítání hodnot ze senzorů (Reading values ​​from sensors)
-void tempAndAmpMeter() {
-  if (manualConfig.useTemp) {
-    updateTempSensor(&defaultConfig);                                  // Volání funkce seznoru DHT (DHT seznor function call)
-  }
-  if (manualConfig.useAmpMeter) {
-    updateMeasureAmp(AmpPin);                                          // Volání funkce seznoru Ampermetru (CCalling the Ammeter sensor function)
-  }
 }
 
 // Kontrola připojení k WiFi a MQTT (WiFi and MQTT connection check)
@@ -476,5 +375,4 @@ void printResetReason() {
         case ESP_RST_SDIO:      resetReasonMessage = "⚠️ Reset související s rozhraním SDIO (Bezpečné digitální vstupně-výstupní rozhraní)."; break;
         default:                resetReasonMessage = "❓ Neznámý důvod restartu."; break;
   }
-}
 }

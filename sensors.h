@@ -13,3 +13,4 @@ void initTempSensor(uint8_t DHTPin);
 // Aktualizace hodnot globálních proměnných
 void updateTempSensor(DefaultConfig* config);
 void updateMeasureAmp(int AmpPin);
+void tempAndAmpMeter();

@@ -49,7 +49,6 @@ struct DefaultConfig {
 };
 
 // Deklarace externích proměnných
-extern DefaultConfig defaultConfig;
 extern Preferences preferences;
 extern const char* PREF_NAMESPACE;
 extern char mqtt_server[40];

@@ -2,9 +2,9 @@
 
 // Definice globálních proměnných
 extern DefaultConfig defaultConfig;
-extern ManualConfig manualConfig;
 extern Preferences preferences;
 extern void debugMQTT(const String& message);
+const ManualConfig manualConfig;
 
 void loadDefaultConfig() {
   preferences.begin(PREF_NAMESPACE, false);  // Inicializace Preferences s jmenným prostorem

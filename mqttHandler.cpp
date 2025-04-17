@@ -1,11 +1,9 @@
 #include "mqttHandler.h"
 #include "config.h"
 #include <Preferences.h>
-#include <TimeLib.h>
 
 // Globální proměnné (pokud jsou potřeba)
 extern Preferences preferences;
-extern WiFiManager wifiManager;
 
 // Implementace funkcí
 void callback(char* topic, byte* payload, unsigned int length) {

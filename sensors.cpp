@@ -2,7 +2,9 @@
 #include "config.h"
 #include <DHTesp.h>                     // https://github.com/adafruit/DHT-sensor-library
 
-//DefaultConfig defaultConfig;
+extern ManualConfig manualConfig;
+extern DefaultConfig defaultConfig;
+extern int AmpPin;
 DHTesp dht;
 
 volatile float Teplota = 0.0;
@@ -52,5 +54,14 @@ void updateMeasureAmp(int AmpPin) {
   }
   else {
     debugMQTT("❌ Chyba: Nepodařilo se načíst hodnotu z ampérmetru.");
+  }
+}
+
+void tempAndAmpMeter() {
+  if (manualConfig.useTemp) {
+    updateTempSensor(&defaultConfig);
+  }
+  if (manualConfig.useAmpMeter) {
+    updateMeasureAmp(AmpPin);
   }
 }
