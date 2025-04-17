@@ -1,3 +1,4 @@
+// Automaticky vygenerovaný config.h pro Test_Board 2025-04-17 18:47
 #ifndef CONFIG_H
 #define CONFIG_H
 
@@ -13,10 +14,10 @@
 
 // Konfigurace nastavení zařízení (Configuration settings device)
 struct ManualConfig {    
-  const String DeskName = "Tepl_5";                     // !! CHANGE !!  Topic název zařízení (Topic device name)
-  const uint8_t DeviceType = DEVICE_NONE;               // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
-  const bool useTlac = false;                           // !! CHANGE !!  Použití tlačítka (Using the button)
-  const uint8_t Stisk = DEVICE_NONE;                    // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY ) (Button settings)
+  const String DeskName = "Test_Board";                     // !! CHANGE !!  Topic název zařízení (Topic device name)
+  const uint8_t DeviceType = LED_WHITE1;               // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
+  const bool useTlac = true;                           // !! CHANGE !!  Použití tlačítka (Using the button)
+  const uint8_t Stisk = LED_WHITE1;                    // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY ) (Button settings)
   const bool useClap = false;                           // !! CHANGE !!  Použití mikrofonu (Using the microphone)
   const bool useWave = false;                           // !! CHANGE !!  Aktivace funkce zapnutí mávnutím (Activation by waving in front of the distance sensor)
   const bool useTemp = true;                            // !! CHANGE !!  Použití DHT sezoru měření teploty (Using a DHT sensor to measure temperature)

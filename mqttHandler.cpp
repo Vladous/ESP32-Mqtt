@@ -290,5 +290,5 @@ void debugMQTT(const String& message) {
 
 void reportFirmwareVersion() {
   String payload = "{\"device\":\"" + String(WIFI_HOSTNAME) + "\",\"version\":\"" + String(VERSION) + "\"}";
-  client.publish("version", 0, true, payload.c_str());
+  client.publish("version", payload.c_str());
 }

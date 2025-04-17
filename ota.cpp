@@ -2,6 +2,7 @@
 #include "mqttHandler.h"  // kvůli debugMQTT
 
 void initOTA(const char* hostname) {
+  ArduinoOTA.setPassword("");                                          // prázdné heslo
   ArduinoOTA.setHostname(hostname);
 
   ArduinoOTA.onStart([]() {
