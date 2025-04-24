@@ -14,13 +14,13 @@
 
 // Konfigurace nastavení zařízení (Configuration settings device)
 struct ManualConfig {    
-  const String DeskName = "Test_Board";                     // !! CHANGE !!  Topic název zařízení (Topic device name)
+  const String DeskName = "Svetlo_05";                     // !! CHANGE !!  Topic název zařízení (Topic device name)
   const uint8_t DeviceType = LED_WHITE1;               // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
-  const bool useTlac = true;                           // !! CHANGE !!  Použití tlačítka (Using the button)
+  const bool useTlac = false;                           // !! CHANGE !!  Použití tlačítka (Using the button)
   const uint8_t Stisk = LED_WHITE1;                    // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY ) (Button settings)
   const bool useClap = false;                           // !! CHANGE !!  Použití mikrofonu (Using the microphone)
   const bool useWave = false;                           // !! CHANGE !!  Aktivace funkce zapnutí mávnutím (Activation by waving in front of the distance sensor)
-  const bool useTemp = true;                            // !! CHANGE !!  Použití DHT sezoru měření teploty (Using a DHT sensor to measure temperature)
+  const bool useTemp = false;                            // !! CHANGE !!  Použití DHT sezoru měření teploty (Using a DHT sensor to measure temperature)
   const bool useAmpMeter = false;                       // !! CHANGE !!  Použití měření odběru (Using current draw measurement)
   const bool useLedBrightnessControl = true;            // !! CHANGE !!  Použití ovládání jasu kontrolních led
   const String LedBrightnessTopic = "Led_brightness";
