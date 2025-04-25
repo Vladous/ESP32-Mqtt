@@ -1,3 +1,7 @@
+//
+// Maximální délka MQTT zprávy 238 b !
+//
+
 #include "mqttHandler.h"
 #include "config.h"
 #include <Preferences.h>
@@ -102,7 +106,7 @@ void callbackSettingsGet() {
   DynamicJsonDocument responseDoc(512);
   responseDoc["ip"] = WiFi.localIP().toString();
   responseDoc["host"] = WIFI_HOSTNAME;
-  responseDoc["deviceList"] = deviceList();
+  responseDoc["deviceList"] = manualConfig.DeviceType;
   responseDoc["CekejOdeslat"] = defaultConfig.CekejOdeslat;
   if (manualConfig.useTemp || manualConfig.useAmpMeter) {
     responseDoc["CekejMereni"] = defaultConfig.CekejMereni;
@@ -118,10 +122,13 @@ void callbackSettingsGet() {
   if (manualConfig.useWave) {
     responseDoc["DistanceSet"] = defaultConfig.DistanceSet;
   }
-  responseDoc["TeplotaChip"] = temperatureRead();
+  responseDoc["TeplotaChip"] = (int)temperatureRead();
   responseDoc["Verze"] = VERSION;
   char responseOut[512];
   serializeJson(responseDoc, responseOut);
+
+  //Serial.print("Velikost zprávy (strlen): ");
+  //Serial.println(strlen(responseOut));
   client.publish(SvetloChr, responseOut);
 }
 
@@ -251,31 +258,31 @@ void Poslat(String from = "") {
 }
 
 void sendHelpResponse() {
-  DynamicJsonDocument helpDoc(1024);  // Zvýšení velikosti bufferu pro více dat
+  DynamicJsonDocument helpDoc(1024);
   // Přidání seznamu příkazů
-  helpDoc["commands"] = JsonArray();
-  helpDoc["commands"].add("reset");         // Reset zařízení
-  helpDoc["commands"].add("restart");       // Restart zařízení
-  helpDoc["commands"].add("settings-set");  // Nastavení parametrů
-  helpDoc["commands"].add("settings-get");  // Získání aktuálních parametrů
-  helpDoc["commands"].add("help");          // Získání nápovědy
-
+  JsonArray commands = helpDoc.createNestedArray("commands");
+  commands.add("reset");
+  commands.add("restart");
+  commands.add("settings-set");
+  commands.add("settings-get");
+  commands.add("help");
+  
   // Detailní možnosti pro "settings-set"
-  helpDoc["settings-set-options"] = JsonObject();  // Objekt pro možnosti nastavení
-  helpDoc["settings-set-options"]["CekejOdeslat"] = "float - časový interval mezi odesláním dat (v sekundách)";
+  JsonArray settingsSetOptions = helpDoc.createNestedArray("settings-set-options");
+  settingsSetOptions.add("CekejOdeslat");
   if (manualConfig.useTemp || manualConfig.useAmpMeter) {
-    helpDoc["settings-set-options"]["CekejMereni"] = "float - nastavené prodlevy měření senzorů (v sekundách)";
+    settingsSetOptions.add("CekejMereni");    
     if (manualConfig.useTemp) {
-      helpDoc["settings-set-options"]["KalibrT"] = "double - nastavené kalibrační hodnoty teploměru";
-      helpDoc["settings-set-options"]["KalibrV"] = "double - nastavené kalibrační hodnoty vlhkoměru";
+      settingsSetOptions.add("KalibrT");
+      settingsSetOptions.add("KalibrV");
     }
   }
   if (manualConfig.useClap) {
-    helpDoc["settings-set-options"]["ClapThreshold"] = "int - nastavené hodnoty prahu tlesknutí";
-    helpDoc["settings-set-options"]["CekejDetectClap"] = "int - nastavené hodnoty prodlevy kontroly tlesknutí";
+    settingsSetOptions.add("ClapThreshold");
+    settingsSetOptions.add("CekejDetectClap");
   }
   if (manualConfig.useWave) {
-    helpDoc["settings-set-options"]["DistanceSet"] = "int - nastavené hodnoty vzdálenosti kontroly mávnutí";
+    settingsSetOptions.add("DistanceSet");
   }
   // Serializace a odeslání zprávy
   char helpOut[1024];
