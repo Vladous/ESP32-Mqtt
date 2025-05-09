@@ -32,7 +32,8 @@
 // v4.1.16.04.2025 Oddělení WiFi Manageru od ino
 // v4.2.16.04.2025 Přidání koontroly verze softwaru po startu na samostatný topic "version"
 // v4.3.17.04.2025 Ještě drobné rozdělení kódu + bugFix
-const char* VERSION = "4.3";
+// v4.4.09.05.2025 Oprava kontroly brokeru. Přihlášení po výpadku elektrického proudu.
+const char* VERSION = "4.4";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -329,29 +330,36 @@ void connectToNetwork() {
     if (WiFi.status() == WL_CONNECTED) {                               // Pokud je aktivní WiFi, připojit k MQTT (If WiFi is active, connect to MQTT)
       analogWrite(LedWi, LedL);
 
-      while (!client.connected()) {
-        if (client.connect(WIFI_HOSTNAME)) {
-          analogWrite(LedWi, LedL);
-          client.subscribe(SvetloChr);                                 // Přihlášení topic kanálu zařízení
-          client.subscribe(manualConfig.LedBrightnessTopic.c_str());   // Přihlášení univerzal topic kanálu jasu led
+      // ✅ Nové: čekej na MQTT broker max 30s
+      WiFiClient testClient;
+      unsigned long mqttTimeout = millis() + 30000;
+      while (!testClient.connect(mqtt_server, atoi(mqtt_port)) && millis() < mqttTimeout) {
+        debugMQTT("🕓 Čekám na spuštění MQTT brokeru...");
+        delay(1000);
+      }
+      testClient.stop();
+
+      // Pokud broker stále není dostupný, nevstupuj do připojení
+      if (!client.connected()) {
+        if (client.connect(manualConfig.DeskName.c_str())) {
+          client.subscribe(SvetloChr);
+          client.subscribe(manualConfig.LedBrightnessTopic.c_str());
           IsConnected = true;
+          Serial.println(WIFI_HOSTNAME);
+          Serial.println(manualConfig.DeskName.c_str());
           if (resetReasonMessage != "") {
             debugMQTT("Restart důvod: " + resetReasonMessage);
             resetReasonMessage = "";
           }
-          return;                                                      // MQTT připojeno, ukončit funkci (MQTT connected, quit function)
         } else {
-          analogWrite(LedWi, LedL);
-          delay(250);
-          analogWrite(LedWi, 0);
-          delay(250);
+          IsConnected = false;
         }
       }
     } else {
-      IsConnected = false;                                             // Připojení síti nenavázáno (Network connection not established)
+      IsConnected = false;
     }
   } else {
-    IsConnected = false;                                               // Připojení síti nenavázáno (Network connection not established)
+    IsConnected = false;
   }
 }
 
