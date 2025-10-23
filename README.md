@@ -1,6 +1,6 @@
 # **MQTT** Device Control s **ESP32** pro **Smart Home** a **IoT** projekty
 
-📌 Další projekty a info: [vladous.funsite.cz](https://vladous.funsite.cz)
+📌 Další projekty a info: [forman.pages.dev](https://forman.pages.dev)
 
 [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cz.svg" width="16"> Česky](./README.md) | [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/gb.svg" width="16"> English](./README.en.md)
 
