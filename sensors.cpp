@@ -10,7 +10,7 @@ DHTesp dht;
 volatile float Teplota = 0.0;
 volatile float Vlhkost = 0.0;
 volatile int16_t PwrAmp = 0;
-
+volatile int16_t PwrAmp = 0;
 
 void initTempSensor(uint8_t DHTPin) {
   dht.setup(DHTPin, DHTesp::DHT11);                                     // Inicializace senzoru na GPIO4

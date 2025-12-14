@@ -33,7 +33,7 @@
 // v4.2.16.04.2025 Přidání koontroly verze softwaru po startu na samostatný topic "version"
 // v4.3.17.04.2025 Ještě drobné rozdělení kódu + bugFix
 // v4.4.09.05.2025 Oprava kontroly brokeru. Přihlášení po výpadku elektrického proudu.
-const char* VERSION = "4.4";
+const char* VERSION = "4.5";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
