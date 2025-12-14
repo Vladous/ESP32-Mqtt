@@ -1,5 +1,7 @@
 # **MQTT** Device Control with **ESP32** for **Smart Home** and **IoT** projects
 
+📌 Other projects and info: [forman.pages.dev](https://forman.pages.dev)
+
 [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cz.svg" width="16"> Česky](./README.md) | [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/gb.svg" width="16"> English](./README.en.md)
 
 This project allows you to control various devices (LED, RGB LED, relay) using the **ESP32** module and communication via **MQTT**. Simply adjust the device type and configure the server addresses, and you can start controlling your devices via **MQTT**.

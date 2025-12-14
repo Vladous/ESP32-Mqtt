@@ -1,5 +1,7 @@
 # **MQTT** Device Control s **ESP32** pro **Smart Home** a **IoT** projekty
 
+📌 Další projekty a info: [forman.pages.dev](https://forman.pages.dev)
+
 [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cz.svg" width="16"> Česky](./README.md) | [<img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/gb.svg" width="16"> English](./README.en.md)
 
 Tento projekt umožňuje ovládat různá zařízení (LED, RGB LED, relé) pomocí modulu **ESP32** a komunikace přes **MQTT**. Jednoduše upravte typ zařízení a nastavte adresy serverů a můžete začít ovládat vaše zařízení prostřednictvím **MQTT**.
