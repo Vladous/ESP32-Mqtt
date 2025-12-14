@@ -49,3 +49,4 @@ void resetWifiManager();
 void restartDevice();
 void debugMQTT(const String& message);
 void reportFirmwareVersion();
+void reportBoardVersion();

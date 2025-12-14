@@ -57,6 +57,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
       resetCalibreData();
       resetWifiManager();
       restartDevice();
+    } else if (doc.containsKey("boardVersion")) {
+      reportBoardVersion();
     } else if (doc.containsKey("restart")) {
       restartDevice();
     } else if (doc.containsKey("help")) {
@@ -298,4 +300,28 @@ void debugMQTT(const String& message) {
 void reportFirmwareVersion() {
   String payload = "{\"device\":\"" + String(WIFI_HOSTNAME) + "\",\"version\":\"" + String(VERSION) + "\"}";
   client.publish("version", payload.c_str());
+}
+
+void reportBoardVersion() {
+  StaticJsonDocument<256> doc;
+
+#if defined(ESP32)
+  doc["chip_model"] = ESP.getChipModel();
+  doc["chip_rev"] = ESP.getChipRevision();
+  doc["mac"] = String((uint64_t)ESP.getEfuseMac(), HEX);
+  doc["sdk"] = ESP.getSdkVersion();
+  doc["board"] = ARDUINO_BOARD;
+  doc["variant"] = ARDUINO_VARIANT;
+
+#elif defined(ESP8266)
+  doc["chip_model"] = "ESP8266";
+  doc["chip_id"] = ESP.getChipId();
+  doc["core"] = ESP.getCoreVersion();
+  doc["sdk"] = ESP.getSdkVersion();
+  doc["boot_ver"] = ESP.getBootVersion();
+#endif
+
+  char buffer[256];
+  serializeJson(doc, buffer);
+  client.publish(SvetloChr, buffer);
 }

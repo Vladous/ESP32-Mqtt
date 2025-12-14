@@ -47,14 +47,31 @@ void updateTempSensor(DefaultConfig* config) {
   }
 }
 
-void updateMeasureAmp(int AmpPin) {
-  uint16_t a = analogRead(AmpPin);                                     // Načtení dat z ampermetru (Reading data from the ammeter)
-  if (!isnan(a)) {
-    PwrAmp = (PwrAmp + a) / 2;                                         // Zkalibrování výstupních hodnot (Calibration of output values)
-  }
-  else {
-    debugMQTT("❌ Chyba: Nepodařilo se načíst hodnotu z ampérmetru.");
-  }
+void updateMeasureAmp(int AmpPin)
+{
+    // ADC hodnota pro 0 A (naměřený střed)
+    const int ZERO = 2400;          // uprav, až si to někdy znovu přeměříš
+    // maximální rozumný rozdíl v ADC krocích
+    // 2000 kroků ≈ 2000 * 0.01221 A ≈ 24 A
+    const int MAX_DIFF = 2000;
+    // Převodní konstanta: A na jeden ADC krok (ACS712-30A, 66 mV/A, 3.3 V, 12bit)
+    const float K_ADC_TO_A = 0.01221f;
+    // 1) načtení syrové hodnoty 0–4095
+    int raw = analogRead(AmpPin);
+    // 2) rozdíl od středu (může být záporný)
+    int diff = raw - ZERO;
+    // 3) vyhození úplných nesmyslů (glitchů)
+    if (abs(diff) > MAX_DIFF) {
+        // Bordel ignorujeme, necháme poslední platnou hodnotu
+        return;
+    }
+    // 4) zajímá nás velikost proudu (kladné číslo)
+    float valRaw = (float)abs(diff);    // v ADC krocích
+    // 5) jednoduchý low-pass filtr (EMA) na surovou hodnotu
+    const float alpha = 0.3f;           // 0–1, vyšší = rychlejší, nižší = hladší
+    PwrAmpRaw = (1.0f - alpha) * PwrAmpRaw + alpha * valRaw;
+    // 6) přepočet na ampéry
+    PwrAmp = PwrAmpRaw * K_ADC_TO_A;
 }
 
 void tempAndAmpMeter() {

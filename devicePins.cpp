@@ -6,7 +6,7 @@ const int ClapSensor = 12;
 const int trigPin = 33;
 const int echoPin = 34;
 uint8_t DHTPin = 3;
-const int AmpPin = 40;
+const int AmpPin = 16;
 
 const int LedPWR = 11;
 const int LedWi = 7;
