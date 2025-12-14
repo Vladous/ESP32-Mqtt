@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "sensors.h"
 #include "config.h"
 #include <DHTesp.h>                     // https://github.com/adafruit/DHT-sensor-library
@@ -9,7 +10,8 @@ DHTesp dht;
 
 volatile float Teplota = 0.0;
 volatile float Vlhkost = 0.0;
-volatile int16_t PwrAmp = 0;
+volatile float PwrAmp = 0.0f;
+static float PwrAmpRaw = 0.0f;
 
 
 void initTempSensor(uint8_t DHTPin) {
