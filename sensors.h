@@ -3,7 +3,7 @@
 
 extern volatile float Teplota;
 extern volatile float Vlhkost;
-extern volatile int16_t PwrAmp;
+extern volatile float PwrAmp;
 
 extern void debugMQTT(const String& message);
 

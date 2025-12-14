@@ -32,7 +32,7 @@ extern volatile int Green;
 extern volatile int Blue;
 extern volatile float Teplota;
 extern volatile float Vlhkost;
-extern volatile int16_t PwrAmp;
+extern volatile float PwrAmp;
 
 // Funkce
 void callback(char* topic, byte* payload, unsigned int length);

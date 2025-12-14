@@ -28,7 +28,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   if (topicStr == manualConfig.LedBrightnessTopic) {
-    if (doc["brightArd"] != nullptr) {
+    if (!doc["brightArd"].isNull()) {
       LedL = doc["brightArd"];
     }
     // Přidat noční režim
@@ -248,8 +248,7 @@ void Poslat(String from = "") {
   }
   // Základní informace o zařízení
   doc["signal"] = WiFi.RSSI();  // Přidání aktuální síly signálu do výstupu k odeslání (Adding the current signal strength to the output to send)
-  byte bssid[6];                // Načtení MAC adresy WiFi hotspotu
-  WiFi.BSSID(bssid);            // (Retrieve the MAC address of the WiFi hotspot)
+  uint8_t* bssid = WiFi.BSSID();            // (Retrieve the MAC address of the WiFi hotspot)
   char bssidStr[18];
   sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
           bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
