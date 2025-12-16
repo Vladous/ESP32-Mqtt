@@ -209,6 +209,7 @@ const char* VERSION = "4.5";
 // Zkontrolovat jestli relé je vždy digitalOut
 
 
+#include <Arduino.h>
 #include "config.h"
 #include "sensors.h"
 #include "lightControl.h"
