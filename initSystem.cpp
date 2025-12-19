@@ -20,7 +20,7 @@ extern char mqtt_server[40];
 extern char mqtt_port[6];
 extern const char* WIFI_HOSTNAME;
 extern char ssid[32];
-extern char password[32];
+extern char password[64];
 extern String resetReasonMessage;
 extern ManualConfig manualConfig;
 extern DefaultConfig defaultConfig;

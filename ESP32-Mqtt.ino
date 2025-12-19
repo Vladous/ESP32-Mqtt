@@ -33,7 +33,7 @@
 // v4.2.16.04.2025 Přidání koontroly verze softwaru po startu na samostatný topic "version"
 // v4.3.17.04.2025 Ještě drobné rozdělení kódu + bugFix
 // v4.4.09.05.2025 Oprava kontroly brokeru. Přihlášení po výpadku elektrického proudu.
-const char* VERSION = "4.5";
+const char* VERSION = "4.6";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -214,6 +214,7 @@ const char* VERSION = "4.5";
 #include "sensors.h"
 #include "lightControl.h"
 #include "deviceControl.h"
+#include "NetConnect.h"
 #include "mqttHandler.h"
 #include "wifiManagerHandler.h"
 #include "ota.h"
@@ -240,7 +241,7 @@ char password[32];                                                     // Promě
 char mqtt_server[40];                                                  // Proměnná pro MQTT IP adress (Variable for MQTT IP adress)
 char mqtt_port[6] = "1883";                                            // Proměnná pro MQTT port (A variable for the MQTT port)
 char mqtt_username[32];                                                // Proměnná pro MQTT User name (Variable for MQTT User name)
-char mqtt_password[32];                                                // Proměnná pro MQTT Password (Variable for MQTT Password)
+char mqtt_password[64];                                                // Proměnná pro MQTT Password (Variable for MQTT Password)
 String resetReasonMessage;
 int Value = 0;
 char SvetloChr[50];
@@ -262,15 +263,13 @@ void setup() {
 void loop() {
   handleOTA();
   OZap = Zap;
-  if (!IsConnected) {
-    connectToNetwork();                                                // Opětovné připojení k WiFi (Reconnect to WiFi)
-  }  
-  client.loop();
+  connectToNetwork();
+  if (client.connected()) client.loop();
   extendedSwitchDispatcher();
   if (PoslatOnOff) {
     Poslat();
     PoslatOnOff = false;
-  }  
+  } 
   int LedBright = LedL;
   if (defaultConfig.NightKontrolLedEnable) {
     LedBright = LedBright /10;
@@ -291,74 +290,6 @@ void loop() {
 // Kontrola připojení k WiFi a MQTT (WiFi and MQTT connection check)
 void reconnect() {
  if (!client.connected() || WiFi.status() != WL_CONNECTED) {
-    IsConnected = false;
-  }
-}
-
-// Připojení k WiFi a MQTT (Connection to WiFi and MQTT)
-void connectToNetwork() {
-  static unsigned long lastAttemptTime = 0;  // Čas posledního pokusu o připojení
-  const unsigned long retryInterval = 2000; // 2 sekundy mezi pokusy
-
-  if (millis() - lastAttemptTime < retryInterval) {
-    return;                                                            // Pokud ještě neuplynul interval, neprováděj další pokus
-  }
-  
-  // Vyhledání nejsilnějšího připojení (Finding the strongest connection)
-  int n = WiFi.scanNetworks();
-  int bestNetworkIndex = -1;
-  int bestRSSI = -9999;                                                // Nízká výchozí hodnota pro porovnání (Low default value for comparison)
-  for (int i = 0; i < n; i++) {
-    if (WiFi.SSID(i) == ssid) {                                        // Hledání sítě s požadovaným SSID (Searching for a network with the desired SSID)
-      int rssi = WiFi.RSSI(i);
-      if (rssi > bestRSSI) {                                           // Pokud je signál silnější, ulož index a RSSI (If the signal is stronger, save the index and RSSI)
-        bestNetworkIndex = i;
-        bestRSSI = rssi;
-      }
-    }
-  }
-  if (bestNetworkIndex != -1) {                                        // Připojit pokud byla nalezena vhodná síť (Connect if a suitable network is found)
-    WiFi.begin(WiFi.SSID(bestNetworkIndex).c_str(), password, 0, WiFi.BSSID(bestNetworkIndex));
-    int timeout = 20000;
-    unsigned long startAttemptTime = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < timeout) {
-      analogWrite(LedWi, HIGH);
-      delay(250);
-      analogWrite(LedWi, LOW);
-      delay(250);
-    }
-    if (WiFi.status() == WL_CONNECTED) {                               // Pokud je aktivní WiFi, připojit k MQTT (If WiFi is active, connect to MQTT)
-      analogWrite(LedWi, LedL);
-
-      // ✅ Nové: čekej na MQTT broker max 30s
-      WiFiClient testClient;
-      unsigned long mqttTimeout = millis() + 30000;
-      while (!testClient.connect(mqtt_server, atoi(mqtt_port)) && millis() < mqttTimeout) {
-        debugMQTT("🕓 Čekám na spuštění MQTT brokeru...");
-        delay(1000);
-      }
-      testClient.stop();
-
-      // Pokud broker stále není dostupný, nevstupuj do připojení
-      if (!client.connected()) {
-        if (client.connect(manualConfig.DeskName.c_str())) {
-          client.subscribe(SvetloChr);
-          client.subscribe(manualConfig.LedBrightnessTopic.c_str());
-          IsConnected = true;
-          Serial.println(WIFI_HOSTNAME);
-          Serial.println(manualConfig.DeskName.c_str());
-          if (resetReasonMessage != "") {
-            debugMQTT("Restart důvod: " + resetReasonMessage);
-            resetReasonMessage = "";
-          }
-        } else {
-          IsConnected = false;
-        }
-      }
-    } else {
-      IsConnected = false;
-    }
-  } else {
     IsConnected = false;
   }
 }
