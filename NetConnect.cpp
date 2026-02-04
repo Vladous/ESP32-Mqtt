@@ -24,10 +24,27 @@ void connectToNetwork() {
 
   const unsigned long now = millis();
 
+  // Watchdog: pokud jsme dlouho offline (WiFi nebo MQTT), restartujeme zařízení
+  static unsigned long offlineStart = 0;
+  const unsigned long offlineRestartMs = 5UL * 60UL * 1000UL; // 5 minut
+
   // 0) už jsme OK
   if (WiFi.status() == WL_CONNECTED && client.connected()) {
     IsConnected = true;
     analogWrite(LedWi, LedL);
+    offlineStart = 0; // reset watchdog
+    return;
+  }
+
+  // zahájit měření doby offline
+  if (offlineStart == 0) offlineStart = now;
+  else if ((now - offlineStart) > offlineRestartMs) {
+    // dlouhodobá neschopnost připojení -> restart
+    Serial.println("Network watchdog: restarting device due to prolonged offline state");
+    // ukažme to i do MQTT logu pokud to jde
+    debugMQTT("Network watchdog: restarting device due to prolonged offline state");
+    // reset pomocí restartu
+    ESP.restart();
     return;
   }
 
@@ -95,11 +112,16 @@ void connectToNetwork() {
 
     // timeout WiFi pokusu
     if (wifiConnecting && (now - wifiStartTime > wifiTimeout)) {
+    #if defined(ESP32)
       wifiConnecting = false;
-#if defined(ESP32)
       scanRunning = false;
-#endif
-      WiFi.disconnect(true);
+      // Nevymazávat uložené WiFi údaje — použít disconnect(false)
+      WiFi.disconnect(false);
+    #else
+      wifiConnecting = false;
+      WiFi.disconnect(false);
+    #endif
+    
     }
 
     return;
@@ -168,7 +190,7 @@ void connectToNetwork() {
   }
 }
 
-void connectToNetwork_Reset() {
-  WiFi.disconnect(true);
-  IsConnected = false;
+// Backwards-compatible wrapper used by mqttHandler
+void reconnect() {
+  connectToNetwork();
 }

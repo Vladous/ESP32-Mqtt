@@ -33,4 +33,3 @@ extern String resetReasonMessage;
 void debugMQTT(const String& msg);
 
 void connectToNetwork();
-void connectToNetwork_Reset();

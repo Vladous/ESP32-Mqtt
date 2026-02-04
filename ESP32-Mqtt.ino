@@ -33,6 +33,12 @@
 // v4.2.16.04.2025 Přidání koontroly verze softwaru po startu na samostatný topic "version"
 // v4.3.17.04.2025 Ještě drobné rozdělení kódu + bugFix
 // v4.4.09.05.2025 Oprava kontroly brokeru. Přihlášení po výpadku elektrického proudu.
+// v4.5.09.05.2025 Přidání kontroly připojení k brokeru a WiFi v loopu, pokud není připojeno, pokusí se znovu připojit.
+// v4.6.14.05.2025 Přidání watchdog pro restart zařízení při dlouhodobé ztrátě připojení k WiFi nebo MQTT (Adding a watchdog to restart the device in case of prolonged loss of connection to WiFi or MQTT)
+// v4.7.14.05.2025 Přidání možnosti nastavení prodlevy mezi pokusy o připojení k WiFi (Adding the ability to set the delay between WiFi connection attempts)
+// v4.8.14.05.2025 °C / °F nastavení pro výstup teploty (°C / °F setting for temperature output)
+// v4.9.14.06.2025 Přidání možnosti nastavení jednotky pro vzdálenost pro mávnutí (Adding the ability to set the unit for distance for waving)
+
 const char* VERSION = "4.9";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
