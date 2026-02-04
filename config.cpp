@@ -4,7 +4,7 @@
 extern DefaultConfig defaultConfig;
 extern Preferences preferences;
 extern void debugMQTT(const String& message);
-const ManualConfig manualConfig;
+extern ManualConfig manualConfig;
 
 void loadDefaultConfig() {
   preferences.begin(PREF_NAMESPACE, false);  // Inicializace Preferences s jmenným prostorem
@@ -50,6 +50,49 @@ void loadDefaultConfig() {
     preferences.putInt("CekejDetectClap", defaultConfig.CekejDetectClap);
   }
   defaultConfig.CekejDetectClap = preferences.getInt("CekejDetectClap", defaultConfig.CekejDetectClap);
+
+  // Načtení nastavení nočního režimu kontrolních LED
+  if (!preferences.isKey("NightKontrolLed")) {
+    preferences.putBool("NightKontrolLed", defaultConfig.NightKontrolLed);
+  }
+  defaultConfig.NightKontrolLed = preferences.getBool("NightKontrolLed", defaultConfig.NightKontrolLed);
+
+  if (!preferences.isKey("NightKontrolLedEnable")) {
+    preferences.putBool("NightKontrolLedEnable", defaultConfig.NightKontrolLedEnable);
+  }
+  defaultConfig.NightKontrolLedEnable = preferences.getBool("NightKontrolLedEnable", defaultConfig.NightKontrolLedEnable);
+
+  if (!preferences.isKey("NightStartHour")) {
+    preferences.putInt("NightStartHour", defaultConfig.NightStartHour);
+  }
+  defaultConfig.NightStartHour = preferences.getInt("NightStartHour", defaultConfig.NightStartHour);
+
+  if (!preferences.isKey("NightStartMin")) {
+    preferences.putInt("NightStartMin", defaultConfig.NightStartMin);
+  }
+  defaultConfig.NightStartMin = preferences.getInt("NightStartMin", defaultConfig.NightStartMin);
+
+  if (!preferences.isKey("NightEndHour")) {
+    preferences.putInt("NightEndHour", defaultConfig.NightEndHour);
+  }
+  defaultConfig.NightEndHour = preferences.getInt("NightEndHour", defaultConfig.NightEndHour);
+
+  if (!preferences.isKey("NightEndMin")) {
+    preferences.putInt("NightEndMin", defaultConfig.NightEndMin);
+  }
+  defaultConfig.NightEndMin = preferences.getInt("NightEndMin", defaultConfig.NightEndMin);
+
+  // TempUnit (výstupní jednotka teploty)
+  if (!preferences.isKey("TempUnit")) {
+    preferences.putString("TempUnit", defaultConfig.TempUnit);
+  }
+  defaultConfig.TempUnit = preferences.getString("TempUnit", defaultConfig.TempUnit.c_str());
+
+  // DistanceUnit (výstupní jednotka vzdálenosti)
+  if (!preferences.isKey("DistanceUnit")) {
+    preferences.putString("DistanceUnit", defaultConfig.DistanceUnit);
+  }
+  defaultConfig.DistanceUnit = preferences.getString("DistanceUnit", defaultConfig.DistanceUnit.c_str());
 
   preferences.end();  // Ukončení práce s Preferences
 }

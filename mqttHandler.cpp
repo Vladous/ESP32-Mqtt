@@ -81,6 +81,18 @@ void callbackSettingsSet(JsonDocument& doc) {
     preferences.putInt("DistanceSet", defaultConfig.DistanceSet);
   }
 
+  // Jednotka vzdálenosti ("cm" nebo "inch")
+  if (doc.containsKey("DistanceUnit")) {
+    const char* du = doc["DistanceUnit"];
+    if (du != nullptr) {
+      String unit = String(du);
+      if (unit == "cm" || unit == "inch") {
+        defaultConfig.DistanceUnit = unit;
+        preferences.putString("DistanceUnit", defaultConfig.DistanceUnit);
+      }
+    }
+  }
+
   if (doc.containsKey("CekejOdeslat")) {
     defaultConfig.CekejOdeslat = doc["CekejOdeslat"].as<float>();
     preferences.putFloat("CekejOdeslat", defaultConfig.CekejOdeslat);
@@ -100,6 +112,42 @@ void callbackSettingsSet(JsonDocument& doc) {
   if (doc.containsKey("KalibrV")) {
     defaultConfig.KalibrV = doc["KalibrV"].as<float>();
     preferences.putFloat("KalibrV", defaultConfig.KalibrV);
+  }
+  // Noční režim kontrolních LED
+  if (doc.containsKey("NightKontrolLed")) {
+    defaultConfig.NightKontrolLed = doc["NightKontrolLed"].as<bool>();
+    preferences.putBool("NightKontrolLed", defaultConfig.NightKontrolLed);
+  }
+  if (doc.containsKey("NightKontrolLedEnable")) {
+    defaultConfig.NightKontrolLedEnable = doc["NightKontrolLedEnable"].as<bool>();
+    preferences.putBool("NightKontrolLedEnable", defaultConfig.NightKontrolLedEnable);
+  }
+  if (doc.containsKey("NightStartHour")) {
+    defaultConfig.NightStartHour = doc["NightStartHour"].as<int>();
+    preferences.putInt("NightStartHour", defaultConfig.NightStartHour);
+  }
+  if (doc.containsKey("NightStartMin")) {
+    defaultConfig.NightStartMin = doc["NightStartMin"].as<int>();
+    preferences.putInt("NightStartMin", defaultConfig.NightStartMin);
+  }
+  if (doc.containsKey("NightEndHour")) {
+    defaultConfig.NightEndHour = doc["NightEndHour"].as<int>();
+    preferences.putInt("NightEndHour", defaultConfig.NightEndHour);
+  }
+  if (doc.containsKey("NightEndMin")) {
+    defaultConfig.NightEndMin = doc["NightEndMin"].as<int>();
+    preferences.putInt("NightEndMin", defaultConfig.NightEndMin);
+  }
+  // Výstupní jednotka teploty ("C" nebo "F")
+  if (doc.containsKey("TempUnit")) {
+    const char* tu = doc["TempUnit"];
+    if (tu != nullptr) {
+      String unit = String(tu);
+      if (unit == "C" || unit == "F") {
+        defaultConfig.TempUnit = unit;
+        preferences.putString("TempUnit", defaultConfig.TempUnit);
+      }
+    }
   }
   preferences.end();
 }
@@ -124,8 +172,19 @@ void callbackSettingsGet() {
   if (manualConfig.useWave) {
     responseDoc["DistanceSet"] = defaultConfig.DistanceSet;
   }
+  // Jednotka vzdálenosti
+  responseDoc["DistanceUnit"] = defaultConfig.DistanceUnit;
   responseDoc["TeplotaChip"] = (int)temperatureRead();
   responseDoc["Verze"] = VERSION;
+  // Výstupní jednotka teploty
+  responseDoc["TempUnit"] = defaultConfig.TempUnit;
+  // Noční režim kontrolních LED
+  responseDoc["NightKontrolLed"] = defaultConfig.NightKontrolLed;
+  responseDoc["NightKontrolLedEnable"] = defaultConfig.NightKontrolLedEnable;
+  responseDoc["NightStartHour"] = defaultConfig.NightStartHour;
+  responseDoc["NightStartMin"] = defaultConfig.NightStartMin;
+  responseDoc["NightEndHour"] = defaultConfig.NightEndHour;
+  responseDoc["NightEndMin"] = defaultConfig.NightEndMin;
   char responseOut[512];
   serializeJson(responseDoc, responseOut);
 
@@ -240,7 +299,12 @@ void Poslat(String from = "") {
     doc.remove("devices");
   }
   if (manualConfig.useTemp) {
-    doc["temp"] = Teplota;  // Přidání naměřené teploty do výstupu k odeslání (Adding the measured temperature to the output for sending)
+    float tempOut = Teplota;
+    if (defaultConfig.TempUnit == "F") {
+      tempOut = (Teplota * 9.0f / 5.0f) + 32.0f;
+    }
+    doc["temp"] = tempOut;  // Přidání naměřené teploty (podle nastavené jednotky)
+    doc["tempUnit"] = defaultConfig.TempUnit;
     doc["hum"] = Vlhkost;   // Přidání naměřené vlhkosti do výstupu k odeslání (Adding the measured humidity to the output for sending)
   }
   if (manualConfig.useAmpMeter) {
@@ -276,6 +340,7 @@ void sendHelpResponse() {
     if (manualConfig.useTemp) {
       settingsSetOptions.add("KalibrT");
       settingsSetOptions.add("KalibrV");
+      settingsSetOptions.add("TempUnit");
     }
   }
   if (manualConfig.useClap) {
@@ -285,6 +350,15 @@ void sendHelpResponse() {
   if (manualConfig.useWave) {
     settingsSetOptions.add("DistanceSet");
   }
+  // DistanceUnit možnost: "cm" nebo "inch"
+  settingsSetOptions.add("DistanceUnit");
+  // Noční režim kontrolních LED
+  settingsSetOptions.add("NightKontrolLed");
+  settingsSetOptions.add("NightKontrolLedEnable");
+  settingsSetOptions.add("NightStartHour");
+  settingsSetOptions.add("NightStartMin");
+  settingsSetOptions.add("NightEndHour");
+  settingsSetOptions.add("NightEndMin");
   // Serializace a odeslání zprávy
   char helpOut[1024];
   serializeJson(helpDoc, helpOut);

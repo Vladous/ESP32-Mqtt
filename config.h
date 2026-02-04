@@ -43,10 +43,14 @@ struct DefaultConfig {
   float CekejMereni = 2.23f;                            // Výchozí nastavení prodlevy mezi měřením DHT (Default setting for the delay between DHT measurements)
   int CekejDetectClap = 50;                             // Výchozí nastavení prodlevy mezi detekcí tlesknutí (Default setting for the delay between clap detection)
   int DistanceSet = 10;                                 // Nastavení vzdálenosti pro sepnutí
+  // Výstupní jednotka vzdálenosti: "cm" nebo "inch"
+  String DistanceUnit = "cm";
   // Kalibrace jasu kontrolek
   float KalibrKontrolRed = 4.4f;                        // Výchozí korekce jasu červené led kontrolky
   float KalibrKontrolGreen = 1.0f;                      // Výchozí korekce jasu zelené  led kontrolky
   float KalibrKontrolBlue = 4.4f;                       // Výchozí korekce jasu modré   led kontrolky
+  // Výstupní jednotka teploty: "C" nebo "F"
+  String TempUnit = "C";
 };
 
 // Deklarace externích proměnných

@@ -33,7 +33,7 @@
 // v4.2.16.04.2025 Přidání koontroly verze softwaru po startu na samostatný topic "version"
 // v4.3.17.04.2025 Ještě drobné rozdělení kódu + bugFix
 // v4.4.09.05.2025 Oprava kontroly brokeru. Přihlášení po výpadku elektrického proudu.
-const char* VERSION = "4.6";
+const char* VERSION = "4.9";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -109,7 +109,7 @@ const char* VERSION = "4.6";
 //       "state": "off"
 //     }
 //   ],
-//   "temp": 21.2,                          // float (volitelně), Teplota ze senzoru (°C)
+//   "temp": 21.2,                          // float (volitelně), Teplota ze senzoru (podle "TempUnit" — °C nebo °F)
 //   "hum": 54.6,                           // float (volitelně), Vlhkost ze senzoru (%)
 //   "Amp": 512,                            // integer (volitelně), Proud z ampérmetru
 //   "signal": -60,                         // integer, Síla WiFi signálu (RSSI v dBm)
@@ -148,7 +148,15 @@ const char* VERSION = "4.6";
 //   "CekejDetectClap": 50,                 // integer (volitelně), Prodleva po tlesknutí (ms)
 //   "KalibrT": 1.33,                       // float (volitelně), Kalibrace teploty
 //   "KalibrV": 0.70,                       // float (volitelně), Kalibrace vlhkosti
-//   "DistanceSet": 5                       // integer (volitelně), Vzdálenost pro mávnutí
+//   "DistanceSet": 5,                      // integer (volitelně), Vzdálenost pro mávnutí
+//   "DistanceUnit": "cm",                  // string (volitelně), Jednotka pro DistanceSet ("cm" nebo "inch")
+//   "TempUnit": "C",                       // string (volitelně), Výstupní jednotka teploty ("C" nebo "F")
+//   "NightKontrolLed": false               // bool (volitelně), Zapnout noční režim kontrolních LED (sníží jas)
+//   "NightKontrolLedEnable": false         // bool (volitelně), Automatické povolení nočního režimu podle času
+//   "NightStartHour": 21                   // integer (volitelně), Hodina začátku nočního režimu (0-23)
+//   "NightStartMin": 0                     // integer (volitelně), Minuta začátku nočního režimu (0-59)
+//   "NightEndHour": 6                      // integer (volitelně), Hodina konce nočního režimu (0-23)
+//   "NightEndMin": 0                       // integer (volitelně), Minuta konce nočního režimu (0-59)
 // }
 //
 // C) Vyžádání nastavení ("settings": "get")
@@ -169,6 +177,12 @@ const char* VERSION = "4.6";
 //   "ClapThreshold": 900,
 //   "CekejDetectClap": 50,
 //   "DistanceSet": 5,
+//   "NightKontrolLed": false,
+//   "NightKontrolLedEnable": false,
+//   "NightStartHour": 21,
+//   "NightStartMin": 0,
+//   "NightEndHour": 6,
+//   "NightEndMin": 0,
 //   "TeplotaChip": 48.2,
 //   "Verze": "1.0.0"
 // }
@@ -203,10 +217,7 @@ const char* VERSION = "4.6";
 
 // ToDo
 // Přidat mikrotlačítko reset
-// Výber výstupu teploty °C / °F
-// Při ovládání vzdálenosti použít cm i inch
 // Doplnit podmínky na všechny dostupná místa
-// Zkontrolovat jestli relé je vždy digitalOut
 
 
 
@@ -287,13 +298,6 @@ void loop() {
   }  
 }
 
-// Kontrola připojení k WiFi a MQTT (WiFi and MQTT connection check)
-void reconnect() {
- if (!client.connected() || WiFi.status() != WL_CONNECTED) {
-    IsConnected = false;
-  }
-}
-
 void restartDevice() {
     ESP.restart();                                                     // Restart zařízení
 }
@@ -304,12 +308,12 @@ void printResetReason() {
   switch (reason) {
         case ESP_RST_POWERON:   resetReasonMessage = "✅ Reset po zapnutí napájení."; break;
         case ESP_RST_EXT:       resetReasonMessage = "⚠️ Externí reset (například tlačítkem)."; break;
-        case ESP_RST_SW:        resetReasonMessage = " ℹ️  Softwarový reset (restart vyvolaný softwarem)."; break;
+        case ESP_RST_SW:        resetReasonMessage = "ℹ️  Softwarový reset (restart vyvolaný softwarem)."; break;
         case ESP_RST_PANIC:     resetReasonMessage = "❌ Panický reset (systémová chyba)."; break;
         case ESP_RST_INT_WDT:   resetReasonMessage = "⚠️ Reset způsobený watchdog časovačem přerušení."; break;
         case ESP_RST_TASK_WDT:  resetReasonMessage = "⚠️ Reset způsobený watchdog časovačem úlohy."; break;
         case ESP_RST_WDT:       resetReasonMessage = "⚠️ Reset způsobený watchdog časovačem."; break;
-        case ESP_RST_DEEPSLEEP: resetReasonMessage = " ℹ️  Reset po probuzení z hlubokého spánku."; break;
+        case ESP_RST_DEEPSLEEP: resetReasonMessage = "ℹ️  Reset po probuzení z hlubokého spánku."; break;
         case ESP_RST_BROWNOUT:  resetReasonMessage = "❌ Reset kvůli poklesu napájecího napětí."; break;
         case ESP_RST_SDIO:      resetReasonMessage = "⚠️ Reset související s rozhraním SDIO (Bezpečné digitální vstupně-výstupní rozhraní)."; break;
         default:                resetReasonMessage = "❓ Neznámý důvod restartu."; break;

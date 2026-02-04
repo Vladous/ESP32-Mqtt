@@ -82,8 +82,14 @@ void checkWave(int trigPin, int echoPin, DefaultConfig* config) {
   digitalWrite(trigPin, LOW);
   long duration = pulseIn(echoPin, HIGH, 15000);  // 15 ms timeout
   if (duration == 0) return;  // neplatná hodnota
-  int distance = duration * 0.034 / 2;
-  if (distance > 1 && distance < config->DistanceSet) {
+  // Výpočet vzdálenosti v cm
+  float distanceCm = (duration * 0.034) / 2.0;
+  // Převod podle nastavené jednotky
+  float measuredDistance = distanceCm;
+  if (config->DistanceUnit == "inch") {
+    measuredDistance = distanceCm / 2.54; // 1 inch = 2.54 cm
+  }
+  if (measuredDistance > 1 && measuredDistance < config->DistanceSet) {
     if (!wasDetected && millis() - waveLockTime > lockDuration) {
       wasDetected = true;
       waveLockTime = millis();
