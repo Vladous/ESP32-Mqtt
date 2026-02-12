@@ -10,7 +10,7 @@ void initOTA(const char* hostname) {
   });
 
   ArduinoOTA.onEnd([]() {
-    // debugMQTT("✅ OTA aktualizace dokončena");
+    debugMQTT("✅ OTA aktualizace dokončena");
   });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
@@ -20,9 +20,9 @@ void initOTA(const char* hostname) {
   });
 
   ArduinoOTA.onError([](ota_error_t error) {
-    // char buf[64];
-    // sprintf(buf, "❌ OTA chyba: %u", error);
-    // debugMQTT(buf);
+    char buf[64];
+    sprintf(buf, "❌ OTA chyba: %u", error);
+    debugMQTT(buf);
   });
 
   ArduinoOTA.begin();
