@@ -1,8 +1,18 @@
 {
   "configurations": [
     {
-      "name": "PlatformIO"
-    }
-  ],
-  "version": 4
+      "name": "PlatformIO",
+      "includePath": [
+                ""
+            ],
+            "defines": [
+                "ARDUINO=10812",
+                "ESP32"
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
 }
