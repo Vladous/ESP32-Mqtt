@@ -1,0 +1,4 @@
+bblanchon/ArduinoJson@^7.0.4
+tzapu/WiFiManager@^2.0.17
+beegee-tokyo/DHT sensor library for ESPx@^1.19
+knolleary/PubSubClient@^2.8

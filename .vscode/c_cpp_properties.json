@@ -1,45 +1,7 @@
 {
   "configurations": [
     {
-      "name": "Win32",
-      "intelliSenseMode": "windows-gcc-x64",
-      "compilerPath": "C:/Users/forman/.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc.exe",
-      "includePath": [
-        "${workspaceFolder}/**",
-        "C:/Users/forman/OneDrive - Apollo/Dokumenty/PlatformIO/Projects/241217-134824-esp32-s3-devkitm-1/src",
-        "C:/Users/forman/OneDrive - Apollo/Dokumenty/PlatformIO/Projects/241217-134824-esp32-s3-devkitm-1/include",
-        "C:/Users/forman/OneDrive - Apollo/Dokumenty/PlatformIO/Projects/241217-134824-esp32-s3-devkitm-1/.pio/libdeps/esp32-s3-devkitm-1/**",
-        "C:/Users/forman/OneDrive - Apollo/Dokumenty/PlatformIO/Projects/241217-134824-esp32-s3-devkitm-1/.pio/build/esp32-s3-devkitm-1/**",
-        "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/**",
-        "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/cores/esp32",
-        "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/libraries/**",
-        "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/variants/**",
-        "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/**",
-        "C:/Users/forman/.platformio/packages/toolchain-xtensa-esp32s3/**"
-      ],
-      "browse": {
-        "path": [
-          "${workspaceFolder}/**",
-          "C:/Users/forman/OneDrive - Apollo/Dokumenty/PlatformIO/Projects/241217-134824-esp32-s3-devkitm-1/src",
-          "C:/Users/forman/OneDrive - Apollo/Dokumenty/PlatformIO/Projects/241217-134824-esp32-s3-devkitm-1/include",
-          "C:/Users/forman/OneDrive - Apollo/Dokumenty/PlatformIO/Projects/241217-134824-esp32-s3-devkitm-1/.pio/libdeps/esp32-s3-devkitm-1/**",
-          "C:/Users/forman/OneDrive - Apollo/Dokumenty/PlatformIO/Projects/241217-134824-esp32-s3-devkitm-1/.pio/build/esp32-s3-devkitm-1/**",
-          "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/**",
-          "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/cores/esp32",
-          "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/libraries/**",
-          "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/variants/**",
-          "C:/Users/forman/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/**",
-          "C:/Users/forman/.platformio/packages/toolchain-xtensa-esp32s3/**"
-        ],
-        "limitSymbolsToIncludedHeaders": false
-      },
-      "defines": [
-        "ESP32",
-        "ARDUINO",
-        "ARDUINO_ARCH_ESP32",
-        "ARDUINO_USB_MODE=1",
-        "ARDUINO_USB_CDC_ON_BOOT=1"
-      ]
+      "name": "PlatformIO"
     }
   ],
   "version": 4
