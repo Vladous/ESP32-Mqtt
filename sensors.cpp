@@ -11,6 +11,7 @@ DHTesp dht;
 volatile float Teplota = 0.0;
 volatile float Vlhkost = 0.0;
 volatile float PwrAmp = 0.0f;
+volatile bool shouldMeasure = false;
 static float PwrAmpRaw = 0.0f;
 
 

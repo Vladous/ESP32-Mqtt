@@ -1,1 +1,45 @@
-*.ino linguist-language=Arduino
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Arduino/C++ source files - normalize line endings to LF
+*.ino text eol=lf linguist-language=Arduino
+*.cpp text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.hpp text eol=lf
+
+# Configuration files
+*.ini text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Windows specific
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files
+*.bin binary
+*.hex binary
+*.elf binary
+*.a binary
+*.o binary
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+
+# Linguist overrides (pro správné rozpoznání na GitHubu)
+*.cpp linguist-detectable=true
+*.h linguist-detectable=true
+*.ino linguist-detectable=true linguist-language=Arduino

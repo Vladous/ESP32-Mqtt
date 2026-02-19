@@ -283,6 +283,10 @@ void loop() {
   connectToNetwork();
   if (client.connected()) client.loop();
   extendedSwitchDispatcher();
+  if (shouldMeasure) {
+    shouldMeasure = false;
+    tempAndAmpMeter();
+  }
   if (PoslatOnOff) {
     Poslat();
     PoslatOnOff = false;

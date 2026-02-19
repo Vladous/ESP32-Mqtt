@@ -9,6 +9,60 @@
 // Globální proměnné (pokud jsou potřeba)
 extern Preferences preferences;
 
+// Helper funkce pro aktualizaci konfigurace
+template<typename T>
+void updateConfig(JsonDocument& doc, const char* key, T& configValue, 
+                  void (Preferences::*putFunc)(const char*, T)) {
+  if (doc.containsKey(key)) {
+    configValue = doc[key].as<T>();
+    (preferences.*putFunc)(key, configValue);
+  }
+}
+
+// Specializace pro String s validací
+void updateConfigString(JsonDocument& doc, const char* key, String& configValue, 
+                        const char** validValues = nullptr, int validCount = 0) {
+  if (doc.containsKey(key)) {
+    const char* value = doc[key];
+    if (value != nullptr) {
+      String strValue = String(value);
+      // Pokud je validace, kontroluj
+      if (validValues != nullptr) {
+        for (int i = 0; i < validCount; i++) {
+          if (strValue == validValues[i]) {
+            configValue = strValue;
+            preferences.putString(key, configValue);
+            return;
+          }
+        }
+      } else {
+        // Bez validace
+        configValue = strValue;
+        preferences.putString(key, configValue);
+      }
+    }
+  }
+}
+
+// Helper pro update stavu LED s brightness
+void updateLEDState(JsonDocument& doc, volatile bool& state, volatile int& brightness) {
+  if (doc.containsKey("state")) {
+    String stateStr = doc["state"].as<String>();
+    state = (stateStr == "on");
+  }
+  if (doc.containsKey("brightness")) {
+    brightness = doc["brightness"].as<int>();
+  }
+}
+
+// Helper pro přidání LED do JSON
+void addLEDToJson(JsonArray& devices, const char* name, bool state, int brightness) {
+  JsonObject led = devices.createNestedObject();
+  led["device"] = name;
+  led["state"] = state ? "on" : "off";
+  led["brightness"] = brightness;
+}
+
 // Implementace funkcí
 void callback(char* topic, byte* payload, unsigned int length) {
   String topicStr = String(topic);
@@ -71,84 +125,33 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void callbackSettingsSet(JsonDocument& doc) {
   preferences.begin(PREF_NAMESPACE, false);
-  if (doc.containsKey("ClapThreshold")) {
-    defaultConfig.ClapThreshold = doc["ClapThreshold"].as<int>();
-    preferences.putInt("ClapThreshold", defaultConfig.ClapThreshold);
-  }
-
-  if (doc.containsKey("DistanceSet")) {
-    defaultConfig.DistanceSet = doc["DistanceSet"].as<int>();
-    preferences.putInt("DistanceSet", defaultConfig.DistanceSet);
-  }
-
-  // Jednotka vzdálenosti ("cm" nebo "inch")
-  if (doc.containsKey("DistanceUnit")) {
-    const char* du = doc["DistanceUnit"];
-    if (du != nullptr) {
-      String unit = String(du);
-      if (unit == "cm" || unit == "inch") {
-        defaultConfig.DistanceUnit = unit;
-        preferences.putString("DistanceUnit", defaultConfig.DistanceUnit);
-      }
-    }
-  }
-
-  if (doc.containsKey("CekejOdeslat")) {
-    defaultConfig.CekejOdeslat = doc["CekejOdeslat"].as<float>();
-    preferences.putFloat("CekejOdeslat", defaultConfig.CekejOdeslat);
-  }
-  if (doc.containsKey("CekejMereni")) {
-    defaultConfig.CekejMereni = doc["CekejMereni"].as<float>();
-    preferences.putFloat("CekejMereni", defaultConfig.CekejMereni);
-  }
-  if (doc.containsKey("CekejDetectClap")) {
-    defaultConfig.CekejDetectClap = doc["CekejDetectClap"].as<int>();
-    preferences.putInt("CekejDetectClap", defaultConfig.CekejDetectClap);
-  }
-  if (doc.containsKey("KalibrT")) {
-    defaultConfig.KalibrT = doc["KalibrT"].as<float>();
-    preferences.putFloat("KalibrT", defaultConfig.KalibrT);
-  }
-  if (doc.containsKey("KalibrV")) {
-    defaultConfig.KalibrV = doc["KalibrV"].as<float>();
-    preferences.putFloat("KalibrV", defaultConfig.KalibrV);
-  }
-  // Noční režim kontrolních LED
-  if (doc.containsKey("NightKontrolLed")) {
-    defaultConfig.NightKontrolLed = doc["NightKontrolLed"].as<bool>();
-    preferences.putBool("NightKontrolLed", defaultConfig.NightKontrolLed);
-  }
-  if (doc.containsKey("NightKontrolLedEnable")) {
-    defaultConfig.NightKontrolLedEnable = doc["NightKontrolLedEnable"].as<bool>();
-    preferences.putBool("NightKontrolLedEnable", defaultConfig.NightKontrolLedEnable);
-  }
-  if (doc.containsKey("NightStartHour")) {
-    defaultConfig.NightStartHour = doc["NightStartHour"].as<int>();
-    preferences.putInt("NightStartHour", defaultConfig.NightStartHour);
-  }
-  if (doc.containsKey("NightStartMin")) {
-    defaultConfig.NightStartMin = doc["NightStartMin"].as<int>();
-    preferences.putInt("NightStartMin", defaultConfig.NightStartMin);
-  }
-  if (doc.containsKey("NightEndHour")) {
-    defaultConfig.NightEndHour = doc["NightEndHour"].as<int>();
-    preferences.putInt("NightEndHour", defaultConfig.NightEndHour);
-  }
-  if (doc.containsKey("NightEndMin")) {
-    defaultConfig.NightEndMin = doc["NightEndMin"].as<int>();
-    preferences.putInt("NightEndMin", defaultConfig.NightEndMin);
-  }
-  // Výstupní jednotka teploty ("C" nebo "F")
-  if (doc.containsKey("TempUnit")) {
-    const char* tu = doc["TempUnit"];
-    if (tu != nullptr) {
-      String unit = String(tu);
-      if (unit == "C" || unit == "F") {
-        defaultConfig.TempUnit = unit;
-        preferences.putString("TempUnit", defaultConfig.TempUnit);
-      }
-    }
-  }
+  
+  // Int hodnoty
+  updateConfig(doc, "ClapThreshold", defaultConfig.ClapThreshold, &Preferences::putInt);
+  updateConfig(doc, "DistanceSet", defaultConfig.DistanceSet, &Preferences::putInt);
+  updateConfig(doc, "CekejDetectClap", defaultConfig.CekejDetectClap, &Preferences::putInt);
+  updateConfig(doc, "NightStartHour", defaultConfig.NightStartHour, &Preferences::putInt);
+  updateConfig(doc, "NightStartMin", defaultConfig.NightStartMin, &Preferences::putInt);
+  updateConfig(doc, "NightEndHour", defaultConfig.NightEndHour, &Preferences::putInt);
+  updateConfig(doc, "NightEndMin", defaultConfig.NightEndMin, &Preferences::putInt);
+  
+  // Float hodnoty
+  updateConfig(doc, "CekejOdeslat", defaultConfig.CekejOdeslat, &Preferences::putFloat);
+  updateConfig(doc, "CekejMereni", defaultConfig.CekejMereni, &Preferences::putFloat);
+  updateConfig(doc, "KalibrT", defaultConfig.KalibrT, &Preferences::putFloat);
+  updateConfig(doc, "KalibrV", defaultConfig.KalibrV, &Preferences::putFloat);
+  
+  // Bool hodnoty
+  updateConfig(doc, "NightKontrolLed", defaultConfig.NightKontrolLed, &Preferences::putBool);
+  updateConfig(doc, "NightKontrolLedEnable", defaultConfig.NightKontrolLedEnable, &Preferences::putBool);
+  
+  // String s validací
+  const char* distanceUnits[] = {"cm", "inch"};
+  updateConfigString(doc, "DistanceUnit", defaultConfig.DistanceUnit, distanceUnits, 2);
+  
+  const char* tempUnits[] = {"C", "F"};
+  updateConfigString(doc, "TempUnit", defaultConfig.TempUnit, tempUnits, 2);
+  
   preferences.end();
 }
 
@@ -203,29 +206,11 @@ void callbackDevice(JsonDocument& doc) {
 
   // Zpracování jednotlivých zařízení
   if ((deviceName == "LED1") && (manualConfig.DeviceType & LED_WHITE1)) {
-    if (doc.containsKey("state")) {
-      String state = doc["state"].as<String>();
-      led1State = (state == "on");  // Změna stavu pouze pokud je přijat
-    }
-    if (doc.containsKey("brightness")) {
-      led1Brightness = doc["brightness"].as<int>();  // Změna jasu pouze pokud je přijat
-    }
+    updateLEDState(doc, led1State, led1Brightness);
   } else if ((deviceName == "LED2") && (manualConfig.DeviceType & LED_WHITE2)) {
-    if (doc.containsKey("state")) {
-      String state = doc["state"].as<String>();
-      led2State = (state == "on");
-    }
-    if (doc.containsKey("brightness")) {
-      led2Brightness = doc["brightness"].as<int>();
-    }
+    updateLEDState(doc, led2State, led2Brightness);
   } else if ((deviceName == "LED3") && (manualConfig.DeviceType & LED_WHITE3)) {
-    if (doc.containsKey("state")) {
-      String state = doc["state"].as<String>();
-      led3State = (state == "on");
-    }
-    if (doc.containsKey("brightness")) {
-      led3Brightness = doc["brightness"].as<int>();
-    }
+    updateLEDState(doc, led3State, led3Brightness);
   } else if ((deviceName == "RGB") && (manualConfig.DeviceType & LED_RGB)) {
     if (doc.containsKey("state")) {
       String state = doc["state"].as<String>();
@@ -257,42 +242,35 @@ void Poslat(String from = "") {
   reconnect();                                           // Volání funkce pro kontrolu připojení k WiFi a MQTT (WiFi and MQTT connection check)
   DynamicJsonDocument doc(512);                          // Deklarace proměnné doc pro Json (Declaration of doc variable for Json)
   JsonArray devices = doc.createNestedArray("devices");  // Vytvoření pole devices k odeslání (Creating the devices array to send)
-  // Kontrola a přidání LED1 (Checking and adding LED1)
+  
+  // Přidání bílých LED
   if (manualConfig.DeviceType & LED_WHITE1) {
-    JsonObject led1 = devices.createNestedObject();  // Vytvoření Json objektu pro LED_WHITE1 (Creating a Json object for LED_WHITE1)
-    led1["device"] = "LED1";                         // Přidání device LED1 do výstupu k odeslání (Adding device LED1 to output to send)
-    led1["state"] = led1State ? "on" : "off";        // Přidání state LED1 do výstupu k odeslání (Adding state LED1 to output to send)
-    led1["brightness"] = led1Brightness;             // Přidání jasu LED1 do výstupu k odeslání (Adding brightness of LED1 to the output to send)
+    addLEDToJson(devices, "LED1", led1State, led1Brightness);
   }
-  // Kontrola a přidání LED2 (Checking and adding LED2)
   if (manualConfig.DeviceType & LED_WHITE2) {
-    JsonObject led2 = devices.createNestedObject();  // Vytvoření Json objektu pro LED_WHITE2 (Creating a Json object for LED_WHITE2)
-    led2["device"] = "LED2";                         // Přidání device LED2 do výstupu k odeslání (Adding device LED2 to output to send)
-    led2["state"] = led2State ? "on" : "off";        // Přidání state LED2 do výstupu k odeslání (Adding state LED2 to output to send)
-    led2["brightness"] = led2Brightness;
+    addLEDToJson(devices, "LED2", led2State, led2Brightness);
   }
-  // Kontrola a přidání LED3 (Checking and adding LED3)
   if (manualConfig.DeviceType & LED_WHITE3) {
-    JsonObject led3 = devices.createNestedObject();  // Vytvoření Json objektu pro LED_WHITE3 (Creating a Json object for LED_WHITE3)
-    led3["device"] = "LED3";                         // Přidání device LED3 do výstupu k odeslání (Adding device LED3 to output to send)
-    led3["state"] = led3State ? "on" : "off";        // Přidání state LED3 do výstupu k odeslání (Adding state LED3 to output to send)
-    led3["brightness"] = led3Brightness;
+    addLEDToJson(devices, "LED3", led3State, led3Brightness);
   }
-  // Kontrola a přidání RGB LED (Checking and adding RGB LED)
+  
+  // Přidání RGB LED
   if (manualConfig.DeviceType & LED_RGB) {
-    JsonObject ledRGB = devices.createNestedObject();               // Vytvoření Json objektu pro RGB LED (Creating a Json object for RGB LED)
-    ledRGB["device"] = "RGB";                                       // Přidání device RGB LED do výstupu k odeslání (Adding device RGB LED to output to send)
-    ledRGB["state"] = ledRGBState ? "on" : "off";                   // Přidání state RGB LED do výstupu k odeslání (Adding state RGB LED to output to send)
-    JsonArray rgbValues = ledRGB.createNestedArray("spectrumRGB");  // Vytvoření Json objektu pro spectrumRGB (Creating a Json object for spectrumRGB)
-    rgbValues.add(Red);                                             // Přidání jasu červené do výstupu k odeslání (Adding brightness red to the output to send)
-    rgbValues.add(Green);                                           // Přidání jasu zelené do výstupu k odeslání (Adding brightness green to the output to send)
-    rgbValues.add(Blue);                                            // Přidání jasu modré do výstupu k odeslání (Adding brightness blue to the output to send)
+    JsonObject ledRGB = devices.createNestedObject();
+    ledRGB["device"] = "RGB";
+    ledRGB["state"] = ledRGBState ? "on" : "off";
+    JsonArray rgbValues = ledRGB.createNestedArray("spectrumRGB");
+    rgbValues.add(Red);
+    rgbValues.add(Green);
+    rgbValues.add(Blue);
   }
+  
   // Přidání relé
   if (manualConfig.DeviceType & DEVICE_RELAY) {
-    JsonObject relay = devices.createNestedObject();  // Vytvoření Json objektu pro relé (Creating a Json object for the relay)
-    relay["device"] = "RELAY";                        // Přidání device relé do výstupu k odeslání (Adding device relay to output to send)
-    relay["state"] = relayState ? "on" : "off";       // Přidání state relé do výstupu k odeslání (Adding state relay to output to send)
+    JsonObject relay = devices.createNestedObject();
+    relay["device"] = "RELAY";
+    relay["state"] = relayState ? "on" : "off";
+  }
   }
   // Pokud pole "devices" je prázdné, odstraníme jej z JSON zprávy (If the devices field is empty, we remove it from the JSON message)
   if (devices.size() == 0) {

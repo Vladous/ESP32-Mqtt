@@ -8,12 +8,7 @@ void connectToNetwork() {
   static unsigned long wifiStartTime = 0;
   const unsigned long wifiTimeout = 20000;
 
-  static bool mqttWaiting = false;
-  static unsigned long mqttStartTime = 0;
-  const unsigned long mqttTimeout = 30000;
-
-  static unsigned long mqttProbeNext = 0;   // kdy zkusit další test brokeru
-  static unsigned long mqttConnNext  = 0;   // kdy zkusit další client.connect
+  static unsigned long mqttConnNext = 0;   // kdy zkusit další client.connect
 
 #if defined(ESP32)
   // ESP32: async scan (neblokuje)
@@ -26,7 +21,7 @@ void connectToNetwork() {
 
   // Watchdog: pokud jsme dlouho offline (WiFi nebo MQTT), restartujeme zařízení
   static unsigned long offlineStart = 0;
-  const unsigned long offlineRestartMs = 5UL * 60UL * 1000UL; // 5 minut
+  const unsigned long offlineRestartMs = 10UL * 60UL * 1000UL; // 10 minut
 
   // 0) už jsme OK
   if (WiFi.status() == WL_CONNECTED && client.connected()) {
@@ -53,6 +48,8 @@ void connectToNetwork() {
 
   // 1) WiFi není připojená -> řeš WiFi (neblokující)
   if (WiFi.status() != WL_CONNECTED) {
+    // Reset MQTT stavu když WiFi vypadne
+    mqttConnNext = 0;
 
     // nový pokus až po intervalu (pokud zrovna neprobíhá connect)
     if (!wifiConnecting && (now - lastAttemptTime < retryInterval)) return;
@@ -133,42 +130,13 @@ void connectToNetwork() {
   scanRunning = false;
 #endif
 
-  // 3) čekání na broker (neblokující)
-  if (!mqttWaiting) {
-    mqttWaiting = true;
-    mqttStartTime = now;
-    mqttProbeNext = 0;
-    mqttConnNext = 0;
-  }
-
-  if (mqttWaiting) {
-    if (now - mqttStartTime > mqttTimeout) {
-      mqttWaiting = false;
-      return;
-    }
-
-    if (now < mqttProbeNext) return;
-    mqttProbeNext = now + 1000;
-
-    WiFiClient testClient;
-    testClient.setTimeout(150); // minimalizace blokace uvnitř connect()
-
-    if (testClient.connect(mqtt_server, (uint16_t)atoi(mqtt_port))) {
-      testClient.stop();
-      mqttWaiting = false;
-    } else {
-      testClient.stop();
-      debugMQTT("🕓 Čekám na spuštění MQTT brokeru...");
-      return;
-    }
-  }
-
-  // 4) broker dostupný -> MQTT connect (jednou za 2s)
+  // 3) WiFi je OK, ale MQTT není připojen -> zkus connect (jednou za 2s)
   if (!client.connected()) {
     if (now < mqttConnNext) return;
-    mqttConnNext = now + 2000;
+    mqttConnNext = now + 2000;  // další pokus za 2s
 
     if (client.connect(manualConfig.DeskName.c_str())) {
+      // Úspěšně připojeno k MQTT
       client.subscribe(SvetloChr);
       client.subscribe(manualConfig.LedBrightnessTopic.c_str());
       IsConnected = true;
@@ -185,6 +153,7 @@ void connectToNetwork() {
 
       analogWrite(LedWi, LedL);
     } else {
+      // Připojení selhalo - zkusí se znovu za 2s
       IsConnected = false;
     }
   }

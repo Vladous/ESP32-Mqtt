@@ -86,13 +86,13 @@ void loadDefaultConfig() {
   if (!preferences.isKey("TempUnit")) {
     preferences.putString("TempUnit", defaultConfig.TempUnit);
   }
-  defaultConfig.TempUnit = preferences.getString("TempUnit", defaultConfig.TempUnit.c_str());
+  defaultConfig.TempUnit = preferences.getString("TempUnit", defaultConfig.TempUnit);
 
   // DistanceUnit (výstupní jednotka vzdálenosti)
   if (!preferences.isKey("DistanceUnit")) {
     preferences.putString("DistanceUnit", defaultConfig.DistanceUnit);
   }
-  defaultConfig.DistanceUnit = preferences.getString("DistanceUnit", defaultConfig.DistanceUnit.c_str());
+  defaultConfig.DistanceUnit = preferences.getString("DistanceUnit", defaultConfig.DistanceUnit);
 
   preferences.end();  // Ukončení práce s Preferences
 }

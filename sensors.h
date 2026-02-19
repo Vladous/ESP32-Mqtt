@@ -4,6 +4,7 @@
 extern volatile float Teplota;
 extern volatile float Vlhkost;
 extern volatile float PwrAmp;
+extern volatile bool shouldMeasure;
 
 extern void debugMQTT(const String& message);
 

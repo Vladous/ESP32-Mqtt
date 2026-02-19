@@ -6,6 +6,7 @@
 #include "wifiManagerHandler.h"
 #include "mqttHandler.h"
 #include "ota.h"
+#include "lightControl.h"
 #include <Ticker.h>
 #include <WiFi.h>
 #include <Preferences.h>
@@ -90,10 +91,10 @@ void initConnection() {
 }
 
 void initTimers() {
-  if (manualConfig.useTemp or manualConfig.useAmpMeter) {
-    TimerMereni.attach(defaultConfig.CekejMereni, tempAndAmpMeter);
+  if (manualConfig.useTemp || manualConfig.useAmpMeter) {
+    TimerMereni.attach(defaultConfig.CekejMereni, []() { shouldMeasure = true; });
   }
-  TimerOdeslat.attach(defaultConfig.CekejOdeslat, []() { Poslat(); });
+  TimerOdeslat.attach(defaultConfig.CekejOdeslat, []() { PoslatOnOff = true; });
 }
 
 void reportStatus() {
