@@ -1,5 +1,8 @@
 //
-// Maximální délka MQTT zprávy 238 b !
+// PubSubClient.h
+// #define MQTT_MAX_PACKET_SIZE 1024
+//
+// Maximální délka MQTT zprávy 952 b ! (Maximální délka MQTT zprávy bez úpravy PubSubClient.h - 238 b !)
 //
 
 #include "mqttHandler.h"
@@ -10,12 +13,12 @@
 extern Preferences preferences;
 
 // Helper funkce pro aktualizaci konfigurace
-template<typename T>
-void updateConfig(JsonDocument& doc, const char* key, T& configValue, 
-                  void (Preferences::*putFunc)(const char*, T)) {
+template<typename TValue, typename TPref>
+void updateConfig(JsonDocument& doc, const char* key, TValue& configValue,
+                  size_t (Preferences::*putFunc)(const char*, TPref)) {
   if (doc.containsKey(key)) {
-    configValue = doc[key].as<T>();
-    (preferences.*putFunc)(key, configValue);
+    configValue = doc[key].as<TValue>();
+    (preferences.*putFunc)(key, static_cast<TPref>(configValue));
   }
 }
 
@@ -66,7 +69,7 @@ void addLEDToJson(JsonArray& devices, const char* name, bool state, int brightne
 // Implementace funkcí
 void callback(char* topic, byte* payload, unsigned int length) {
   String topicStr = String(topic);
-  DynamicJsonDocument doc(512);
+  DynamicJsonDocument doc(1024);
   DeserializationError error = deserializeJson(doc, payload, length);
   if (error) {
     String message = "❌ Chyba deserializace callback: " + String(error.c_str()) + "\n";
@@ -155,8 +158,10 @@ void callbackSettingsSet(JsonDocument& doc) {
   preferences.end();
 }
 
+// PubSubClient.h
+// #define MQTT_MAX_PACKET_SIZE 1024
 void callbackSettingsGet() {
-  DynamicJsonDocument responseDoc(512);
+  DynamicJsonDocument responseDoc(1024);
   responseDoc["ip"] = WiFi.localIP().toString();
   responseDoc["host"] = WIFI_HOSTNAME;
   responseDoc["deviceList"] = manualConfig.DeviceType;
@@ -166,6 +171,7 @@ void callbackSettingsGet() {
     if (manualConfig.useTemp) {
       responseDoc["KalibrT"] = defaultConfig.KalibrT;
       responseDoc["KalibrV"] = defaultConfig.KalibrV;
+      responseDoc["TempUnit"] = defaultConfig.TempUnit;
     }
   }
   if (manualConfig.useClap) {
@@ -174,25 +180,27 @@ void callbackSettingsGet() {
   }
   if (manualConfig.useWave) {
     responseDoc["DistanceSet"] = defaultConfig.DistanceSet;
+    responseDoc["DistanceUnit"] = defaultConfig.DistanceUnit;
   }
-  // Jednotka vzdálenosti
-  responseDoc["DistanceUnit"] = defaultConfig.DistanceUnit;
   responseDoc["TeplotaChip"] = (int)temperatureRead();
   responseDoc["Verze"] = VERSION;
-  // Výstupní jednotka teploty
-  responseDoc["TempUnit"] = defaultConfig.TempUnit;
+  
   // Noční režim kontrolních LED
-  responseDoc["NightKontrolLed"] = defaultConfig.NightKontrolLed;
-  responseDoc["NightKontrolLedEnable"] = defaultConfig.NightKontrolLedEnable;
-  responseDoc["NightStartHour"] = defaultConfig.NightStartHour;
-  responseDoc["NightStartMin"] = defaultConfig.NightStartMin;
-  responseDoc["NightEndHour"] = defaultConfig.NightEndHour;
-  responseDoc["NightEndMin"] = defaultConfig.NightEndMin;
-  char responseOut[512];
+  if (defaultConfig.NightKontrolLed) {
+    responseDoc["NightKontrolLed"] = defaultConfig.NightKontrolLed;
+    responseDoc["NightKontrolLedEnable"] = defaultConfig.NightKontrolLedEnable;
+    responseDoc["NightStartHour"] = defaultConfig.NightStartHour;
+    responseDoc["NightStartMin"] = defaultConfig.NightStartMin;
+    responseDoc["NightEndHour"] = defaultConfig.NightEndHour;
+    responseDoc["NightEndMin"] = defaultConfig.NightEndMin;
+  }
+  
+  char responseOut[1024];
   serializeJson(responseDoc, responseOut);
+  
+  Serial.print("Velikost zprávy (strlen): ");
+  Serial.println(strlen(responseOut));
 
-  //Serial.print("Velikost zprávy (strlen): ");
-  //Serial.println(strlen(responseOut));
   client.publish(SvetloChr, responseOut);
 }
 
@@ -240,7 +248,7 @@ void Poslat() {
 
 void Poslat(String from = "") {
   reconnect();                                           // Volání funkce pro kontrolu připojení k WiFi a MQTT (WiFi and MQTT connection check)
-  DynamicJsonDocument doc(512);                          // Deklarace proměnné doc pro Json (Declaration of doc variable for Json)
+  DynamicJsonDocument doc(1024);                         // Deklarace proměnné doc pro Json (Declaration of doc variable for Json)
   JsonArray devices = doc.createNestedArray("devices");  // Vytvoření pole devices k odeslání (Creating the devices array to send)
   
   // Přidání bílých LED
@@ -270,7 +278,6 @@ void Poslat(String from = "") {
     JsonObject relay = devices.createNestedObject();
     relay["device"] = "RELAY";
     relay["state"] = relayState ? "on" : "off";
-  }
   }
   // Pokud pole "devices" je prázdné, odstraníme jej z JSON zprávy (If the devices field is empty, we remove it from the JSON message)
   if (devices.size() == 0) {
@@ -354,7 +361,7 @@ void reportFirmwareVersion() {
 }
 
 void reportBoardVersion() {
-  StaticJsonDocument<256> doc;
+  StaticJsonDocument<1024> doc;
 
 #if defined(ESP32)
   doc["chip_model"] = ESP.getChipModel();
@@ -372,7 +379,7 @@ void reportBoardVersion() {
   doc["boot_ver"] = ESP.getBootVersion();
 #endif
 
-  char buffer[256];
+  char buffer[1024];
   serializeJson(doc, buffer);
   client.publish(SvetloChr, buffer);
 }
