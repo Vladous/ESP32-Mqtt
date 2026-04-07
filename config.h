@@ -14,7 +14,7 @@
 
 // Konfigurace nastavení zařízení (Configuration settings device)
 struct ManualConfig {    
-  const String DeskName = "Test_Board";                 // !! CHANGE !!  Topic název zařízení (Topic device name)
+  const String DeskName = "Tepl_6";                     // !! CHANGE !!  Topic název zařízení (Topic device name)
   const uint8_t DeviceType = DEVICE_NONE;               // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
   const bool useTlac = false;                           // !! CHANGE !!  Použití tlačítka (Using the button)
   const uint8_t Stisk = DEVICE_NONE;                    // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY ) (Button settings)
@@ -37,7 +37,7 @@ struct DefaultConfig {
   int NightEndMin = 0;
   // Kalibrační hodnoty
   float KalibrT = 1.56;     
-  float KalibrV = 0.55;     
+  float KalibrV = 0.58;     
   int ClapThreshold = 15;                               // Výchozí nastavení hladiny detekce tlesknutí (Default clap detection level setting)
   float CekejOdeslat = 20.0f;                           // Výchozí nastavení prodlevy mezi odesláním dat (Default setting for the delay between sending data)
   float CekejMereni = 2.23f;                            // Výchozí nastavení prodlevy mezi měřením DHT (Default setting for the delay between DHT measurements)
