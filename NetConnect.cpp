@@ -2,11 +2,13 @@
 
 void connectToNetwork() {
   static unsigned long lastAttemptTime = 0;
-  const unsigned long retryInterval = 2000;
+  static unsigned long wifiRetryInterval = 5000;
+  const unsigned long wifiRetryMin = 5000;
+  const unsigned long wifiRetryMax = 60000;
 
   static bool wifiConnecting = false;
   static unsigned long wifiStartTime = 0;
-  const unsigned long wifiTimeout = 20000;
+  const unsigned long wifiTimeout = 45000;
 
   static unsigned long mqttConnNext = 0;   // kdy zkusit další client.connect
 
@@ -14,7 +16,7 @@ void connectToNetwork() {
   // ESP32: async scan (neblokuje)
   static bool scanRunning = false;
   static bool bestBssidValid = false;
-  static uint8_t bestBssid[6] = {0};
+  static unsigned char bestBssid[6] = {0};
 #endif
 
   const unsigned long now = millis();
@@ -28,6 +30,7 @@ void connectToNetwork() {
     IsConnected = true;
     analogWrite(LedWi, LedL);
     offlineStart = 0; // reset watchdog
+    wifiRetryInterval = wifiRetryMin;
     return;
   }
 
@@ -52,7 +55,7 @@ void connectToNetwork() {
     mqttConnNext = 0;
 
     // nový pokus až po intervalu (pokud zrovna neprobíhá connect)
-    if (!wifiConnecting && (now - lastAttemptTime < retryInterval)) return;
+    if (!wifiConnecting && (now - lastAttemptTime < wifiRetryInterval)) return;
 
     // start pokusu (jednou)
     if (!wifiConnecting) {
@@ -89,9 +92,11 @@ void connectToNetwork() {
           int rssi = WiFi.RSSI(i);
           if (rssi > bestRSSI) {
             bestRSSI = rssi;
-            const uint8_t* b = WiFi.BSSID(i);
+            const auto* b = WiFi.BSSID(i);
             if (b) {
-              memcpy(bestBssid, b, 6);
+              for (int j = 0; j < 6; j++) {
+                bestBssid[j] = b[j];
+              }
               bestBssidValid = true;
             }
           }
@@ -118,6 +123,11 @@ void connectToNetwork() {
       wifiConnecting = false;
       WiFi.disconnect(false);
     #endif
+
+      if (wifiRetryInterval < wifiRetryMax) {
+        unsigned long nextRetryInterval = wifiRetryInterval * 2;
+        wifiRetryInterval = (nextRetryInterval > wifiRetryMax) ? wifiRetryMax : nextRetryInterval;
+      }
     
     }
 
@@ -126,6 +136,7 @@ void connectToNetwork() {
 
   // 2) WiFi připojena -> reset WiFi stavu
   wifiConnecting = false;
+  wifiRetryInterval = wifiRetryMin;
 #if defined(ESP32)
   scanRunning = false;
 #endif

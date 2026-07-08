@@ -15,8 +15,61 @@ extern char mqtt_port[6];
 WiFiManager wifiManager;
 
 bool setupWiFi() {
+  WiFi.setHostname(WIFI_HOSTNAME);
+
   if (WiFi.isConnected()) {
     // WiFi už je připojeno, načti uložené MQTT údaje z Preferences
+    Preferences preferences;
+    preferences.begin(PREF_NAMESPACE, true); // pouze pro čtení
+    String savedServer = preferences.getString("mqtt_server", "");
+    String savedPort = preferences.getString("mqtt_port", "");
+    preferences.end();
+
+    savedServer.toCharArray(mqtt_server, sizeof(mqtt_server));
+    savedPort.toCharArray(mqtt_port, sizeof(mqtt_port));
+
+    return true;
+  }
+
+  // 1) Nejprve zkoušej připojení na již uložené WiFi údaje (STA) s postupným zpomalováním.
+  //    Teprve po delší době bez úspěchu přepneme do WiFiManager portálu.
+  const unsigned long stationTryWindowMs = 180000UL;   // 3 minuty
+  const unsigned long backoffStartMs = 4000UL;
+  const unsigned long backoffMaxMs = 30000UL;
+
+  unsigned long backoffMs = backoffStartMs;
+  unsigned long startedAt = millis();
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin();  // použije uložené credentials z NVS
+
+  while (WiFi.status() != WL_CONNECTED) {
+    if ((millis() - startedAt) >= stationTryWindowMs) {
+      break;
+    }
+
+    Serial.print("WiFi reconnect in ");
+    Serial.print(backoffMs / 1000);
+    Serial.println("s...");
+    delay(backoffMs);
+
+    if (WiFi.status() == WL_CONNECTED) {
+      break;
+    }
+
+    WiFi.disconnect(false);
+    WiFi.begin();
+
+    if (backoffMs < backoffMaxMs) {
+      backoffMs = min(backoffMs * 2, backoffMaxMs);
+    }
+  }
+
+  if (WiFi.isConnected()) {
+    // Připojeno přes uložené údaje, WiFiManager není potřeba.
+    strcpy(ssid, WiFi.SSID().c_str());
+    strcpy(password, WiFi.psk().c_str());
+
     Preferences preferences;
     preferences.begin(PREF_NAMESPACE, true); // pouze pro čtení
     String savedServer = preferences.getString("mqtt_server", "");
@@ -40,8 +93,8 @@ bool setupWiFi() {
   // wifiManager.addParameter(&custom_mqtt_username);
   // wifiManager.addParameter(&custom_mqtt_password);
 
-  WiFi.setHostname(WIFI_HOSTNAME);
   String apName = String(WIFI_HOSTNAME) + "_AP";
+  wifiManager.setConfigPortalTimeout(300); // 5 minut na ruční zásah
 
   if (wifiManager.autoConnect(apName.c_str())) {
     // Připojeno OK → načti hodnoty
@@ -61,9 +114,8 @@ bool setupWiFi() {
 
     return true;
   } else {
-    Serial.println("❌ Nepodařilo se připojit - restartuju");
-    ESP.restart();
-    return false; // Tohle už se neprovede, ale pro jistotu
+    Serial.println("❌ Nepodařilo se připojit ve WiFiManageru");
+    return false;
   }
 }
 

@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "config.h"          // mqtt_server[], mqtt_port[], ManualConfig
 
-inline constexpr const char* MODULE_VERSION_NET_CONNECT = "4.9";
+inline constexpr const char* MODULE_VERSION_NET_CONNECT = "5.0";
 
 #if defined(ESP32)
   #include <WiFi.h>
