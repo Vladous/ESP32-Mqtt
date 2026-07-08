@@ -1,6 +1,8 @@
 #pragma once
 #include <Arduino.h>
 
+inline constexpr const char* MODULE_VERSION_DEVICE_PINS = "4.9";
+
 // Vstupy
 extern const int Sw;
 extern const int ClapSensor;

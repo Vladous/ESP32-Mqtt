@@ -7,10 +7,12 @@
 #include "config.h"
 #include <Preferences.h>
 
+inline constexpr const char* MODULE_VERSION_MQTT_HANDLER = "4.9";
+
 // Deklarace externích konstant
 extern const char* PREF_NAMESPACE;
 extern const char* WIFI_HOSTNAME;
-extern const char* VERSION;
+extern const char* MAIN_VERSION;
 
 // Externí proměnné
 extern PubSubClient client; // MQTT klient, definovaný jinde
@@ -50,3 +52,5 @@ void restartDevice();
 void debugMQTT(const String& message);
 void reportFirmwareVersion();
 void reportBoardVersion();
+void fillModuleVersions(JsonObject versionsObject);
+String buildModuleVersionsJson();

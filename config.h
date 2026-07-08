@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include <Preferences.h> // Přidání závislosti na Preferences
 
+inline constexpr const char* MODULE_VERSION_CONFIG = "4.9";
+
 #define DEVICE_NONE   0x00
 #define LED_WHITE1    0x01
 #define LED_WHITE2    0x02

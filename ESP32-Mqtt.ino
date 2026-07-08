@@ -39,7 +39,7 @@
 // v4.8.14.05.2025 °C / °F nastavení pro výstup teploty (°C / °F setting for temperature output)
 // v4.9.14.06.2025 Přidání možnosti nastavení jednotky pro vzdálenost pro mávnutí (Adding the ability to set the unit for distance for waving)
 
-const char* VERSION = "4.9";
+const char* MAIN_VERSION = "4.9";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -238,10 +238,16 @@ const char* VERSION = "4.9";
 #include "initSystem.h"
 #include "devicePins.h"
 #include "stateControl.h"
+#include <ArduinoJson.h>
 #include <PubSubClient.h>                                              // https://github.com/knolleary/pubsubclient
 #include <WiFi.h>                                                      // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
 #include <Ticker.h>                                                    // https://github.com/espressif/arduino-esp32/blob/master/libraries/Ticker
 #include <esp_system.h>                                                // Zobrazení příčiny restartu (Display the reason for the restart)
+
+struct ModuleVersionEntry {
+  const char* key;
+  const char* version;
+};
 
 ManualConfig manualConfig;                                             // Použije výchozí hodnoty definované v `ManualConfig`      (config.h)
 DefaultConfig defaultConfig;                                           // Použije výchozí hodnoty definované v `DefaultConfig`     (config.h)
@@ -264,6 +270,40 @@ int Value = 0;
 char SvetloChr[50];
 char Pwr[50];
 Ticker TimerOdeslat, TimerMereni;                                      // Proměnné přerušení (Interrupts variables)
+
+void fillModuleVersions(JsonObject versionsObject) {
+  static const ModuleVersionEntry MODULE_VERSIONS[] = {
+    {"main", MAIN_VERSION},
+    {"config", MODULE_VERSION_CONFIG},
+    {"sensors", MODULE_VERSION_SENSORS},
+    {"lightControl", MODULE_VERSION_LIGHT_CONTROL},
+    {"deviceControl", MODULE_VERSION_DEVICE_CONTROL},
+    {"netConnect", MODULE_VERSION_NET_CONNECT},
+    {"mqttHandler", MODULE_VERSION_MQTT_HANDLER},
+    {"wifiManager", MODULE_VERSION_WIFI_MANAGER},
+    {"ota", MODULE_VERSION_OTA},
+    {"initSystem", MODULE_VERSION_INIT_SYSTEM},
+    {"devicePins", MODULE_VERSION_DEVICE_PINS},
+    {"stateControl", MODULE_VERSION_STATE_CONTROL}
+  };
+
+  for (const auto& entry : MODULE_VERSIONS) {
+    versionsObject[entry.key] = entry.version;
+  }
+}
+
+String buildModuleVersionsJson() {
+  StaticJsonDocument<768> payloadDoc;
+  payloadDoc["device"] = WIFI_HOSTNAME;
+  payloadDoc["version"] = MAIN_VERSION;
+
+  JsonObject versionsObject = payloadDoc.createNestedObject("versions");
+  fillModuleVersions(versionsObject);
+
+  String payload;
+  serializeJson(payloadDoc, payload);
+  return payload;
+}
 
 void setup() {  
   initPins();  

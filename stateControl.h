@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 
+inline constexpr const char* MODULE_VERSION_STATE_CONTROL = "4.9";
+
 // Stav světel
 extern volatile bool led1State;
 extern volatile int led1Brightness;

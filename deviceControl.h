@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include "config.h"
 
+inline constexpr const char* MODULE_VERSION_DEVICE_CONTROL = "4.9";
+
 // Externí proměnné potřebné pro funkce v deviceControl.cpp
 extern const int PwrSw;               // Pin pro LED kontrolku on/off
 extern const int PwrRed;              // Pin pro červenou LED

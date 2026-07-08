@@ -183,7 +183,7 @@ void callbackSettingsGet() {
     responseDoc["DistanceUnit"] = defaultConfig.DistanceUnit;
   }
   responseDoc["TeplotaChip"] = (int)temperatureRead();
-  responseDoc["Verze"] = VERSION;
+  responseDoc["Verze"] = MAIN_VERSION;
   
   // Noční režim kontrolních LED
   if (defaultConfig.NightKontrolLed) {
@@ -356,7 +356,7 @@ void debugMQTT(const String& message) {
 }
 
 void reportFirmwareVersion() {
-  String payload = "{\"device\":\"" + String(WIFI_HOSTNAME) + "\",\"version\":\"" + String(VERSION) + "\"}";
+  String payload = buildModuleVersionsJson();
   client.publish("version", payload.c_str());
 }
 

@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include "config.h"
 
+inline constexpr const char* MODULE_VERSION_LIGHT_CONTROL = "4.9";
+
 // Deklarace externích funkcí, které se používají v `pushInterrupt`
 void changeState();
 void updateZap();
