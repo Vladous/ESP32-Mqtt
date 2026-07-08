@@ -12,12 +12,10 @@ void connectToNetwork() {
 
   static unsigned long mqttConnNext = 0;   // kdy zkusit další client.connect
 
-#if defined(ESP32)
   // ESP32: async scan (neblokuje)
   static bool scanRunning = false;
   static bool bestBssidValid = false;
   static unsigned char bestBssid[6] = {0};
-#endif
 
   const unsigned long now = millis();
 
@@ -63,20 +61,13 @@ void connectToNetwork() {
       wifiConnecting = true;
       wifiStartTime = now;
 
-#if defined(ESP32)
       WiFi.scanDelete();
       WiFi.scanNetworks(true);   // async start
       scanRunning = true;
       bestBssidValid = false;
       return;
-#else
-      // ESP8266: scan může blokovat, takže ho vynecháme = fakt neblokující
-      WiFi.begin(ssid, password);
-      return;
-#endif
     }
 
-#if defined(ESP32)
     // čekej na dokončení async scanu
     if (scanRunning) {
       int n = WiFi.scanComplete();
@@ -110,19 +101,13 @@ void connectToNetwork() {
 
       return;
     }
-#endif
 
     // timeout WiFi pokusu
     if (wifiConnecting && (now - wifiStartTime > wifiTimeout)) {
-    #if defined(ESP32)
       wifiConnecting = false;
       scanRunning = false;
       // Nevymazávat uložené WiFi údaje — použít disconnect(false)
       WiFi.disconnect(false);
-    #else
-      wifiConnecting = false;
-      WiFi.disconnect(false);
-    #endif
 
       if (wifiRetryInterval < wifiRetryMax) {
         unsigned long nextRetryInterval = wifiRetryInterval * 2;
@@ -137,9 +122,7 @@ void connectToNetwork() {
   // 2) WiFi připojena -> reset WiFi stavu
   wifiConnecting = false;
   wifiRetryInterval = wifiRetryMin;
-#if defined(ESP32)
   scanRunning = false;
-#endif
 
   // 3) WiFi je OK, ale MQTT není připojen -> zkus connect (jednou za 2s)
   if (!client.connected()) {
@@ -152,9 +135,7 @@ void connectToNetwork() {
       client.subscribe(manualConfig.LedBrightnessTopic.c_str());
       IsConnected = true;
 
-#ifdef WIFI_HOSTNAME
       Serial.println(WIFI_HOSTNAME);
-#endif
       Serial.println(manualConfig.DeskName.c_str());
 
       if (resetReasonMessage.length() > 0) {

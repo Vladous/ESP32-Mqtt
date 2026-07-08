@@ -4,13 +4,7 @@
 
 inline constexpr const char* MODULE_VERSION_NET_CONNECT = "5.0";
 
-#if defined(ESP32)
-  #include <WiFi.h>
-#elif defined(ESP8266)
-  #include <ESP8266WiFi.h>
-#else
-  #error "NetConnect: podporuje jen ESP32/ESP8266."
-#endif
+#include <WiFi.h>
 
 #include <PubSubClient.h>
 
@@ -29,6 +23,7 @@ extern bool IsConnected;
 extern char SvetloChr[];         // u tebe: char SvetloChr[50];
 
 extern ManualConfig manualConfig; // u tebe: ManualConfig manualConfig;
+extern const char* WIFI_HOSTNAME;
 
 extern String resetReasonMessage;
 
