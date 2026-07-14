@@ -116,6 +116,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
       restartDevice();
     } else if (doc.containsKey("boardVersion")) {
       reportBoardVersion();
+    } else if (doc.containsKey("reportFirmwareVersion") || doc.containsKey("firmwareVersion")) {
+      reportFirmwareVersion();
     } else if (doc.containsKey("restart")) {
       restartDevice();
     } else if (doc.containsKey("help")) {
@@ -357,7 +359,10 @@ void debugMQTT(const String& message) {
 
 void reportFirmwareVersion() {
   String payload = buildModuleVersionsJson();
-  client.publish("version", payload.c_str());
+  // Publikuj do centrálního topicu verzí a současně i na device topic
+  // (snazší testování bez nutnosti extra subscribe na "version").
+  client.publish("version", payload.c_str(), true);
+  client.publish(SvetloChr, payload.c_str());
 }
 
 void reportBoardVersion() {

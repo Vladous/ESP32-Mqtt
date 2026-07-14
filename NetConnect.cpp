@@ -1,4 +1,5 @@
 #include "NetConnect.h"
+#include <cstring>
 
 void connectToNetwork() {
   static unsigned long lastAttemptTime = 0;
@@ -17,6 +18,15 @@ void connectToNetwork() {
   static bool bestBssidValid = false;
   static unsigned char bestBssid[6] = {0};
 
+  // Periodický roaming mezi AP se stejným SSID (pokud je nalezen výrazně lepší signál)
+  static bool roamScanRunning = false;
+  static unsigned long lastRoamScanAt = 0;
+  static unsigned long connectedSince = 0;
+  const unsigned long roamScanIntervalMs = 90000UL;   // 90 s
+  const unsigned long roamMinConnectedMs = 120000UL;  // minimálně 2 minuty na aktuálním AP
+  const int roamMinImprovementDb = 12;                // přepínat jen při jasně lepším signálu
+  const int roamWeakRssiThreshold = -75;              // pokud jsme už slabí, stačí i menší rozdíl
+
   const unsigned long now = millis();
 
   // Watchdog: pokud jsme dlouho offline (WiFi nebo MQTT), restartujeme zařízení
@@ -29,6 +39,72 @@ void connectToNetwork() {
     analogWrite(LedWi, LedL);
     offlineStart = 0; // reset watchdog
     wifiRetryInterval = wifiRetryMin;
+
+    if (connectedSince == 0) {
+      connectedSince = now;
+    }
+
+    // Dokončení async roaming scanu během normálního provozu.
+    if (roamScanRunning) {
+      int n = WiFi.scanComplete();
+      if (n != WIFI_SCAN_RUNNING) {
+        roamScanRunning = false;
+
+        int currentRssi = WiFi.RSSI();
+        const uint8_t* currentBssid = WiFi.BSSID();
+        bool currentBssidValid = (currentBssid != nullptr);
+
+        int bestRoamRssi = -9999;
+        bool bestRoamBssidValid = false;
+        uint8_t bestRoamBssid[6] = {0};
+
+        for (int i = 0; i < n; i++) {
+          if (WiFi.SSID(i) == ssid) {
+            int rssi = WiFi.RSSI(i);
+            const uint8_t* b = WiFi.BSSID(i);
+            if (b && rssi > bestRoamRssi) {
+              bestRoamRssi = rssi;
+              memcpy(bestRoamBssid, b, 6);
+              bestRoamBssidValid = true;
+            }
+          }
+        }
+
+        if (bestRoamBssidValid) {
+          bool differentAp = true;
+          if (currentBssidValid) {
+            differentAp = (memcmp(bestRoamBssid, currentBssid, 6) != 0);
+          }
+
+          int improvement = bestRoamRssi - currentRssi;
+          bool strongImprovement = (improvement >= roamMinImprovementDb);
+          bool currentlyWeakAndBetter = (currentRssi <= roamWeakRssiThreshold) && (improvement > 0);
+
+          if (differentAp && (strongImprovement || currentlyWeakAndBetter)) {
+            Serial.printf("WiFi roaming: RSSI %d -> %d, switching AP\n", currentRssi, bestRoamRssi);
+            WiFi.disconnect(false, false);
+            WiFi.begin(ssid, password, 0, bestRoamBssid, true);
+
+            wifiConnecting = true;
+            wifiStartTime = now;
+            lastAttemptTime = now;
+            mqttConnNext = 0;
+            connectedSince = 0;
+          }
+        }
+
+        WiFi.scanDelete();
+      }
+    }
+
+    // Spuštění periodického roaming scanu.
+    if (!wifiConnecting && !roamScanRunning && (now - connectedSince) >= roamMinConnectedMs && (now - lastRoamScanAt) >= roamScanIntervalMs) {
+      lastRoamScanAt = now;
+      WiFi.scanDelete();
+      WiFi.scanNetworks(true);  // async
+      roamScanRunning = true;
+    }
+
     return;
   }
 
@@ -46,6 +122,8 @@ void connectToNetwork() {
 
   // default: nejsme OK
   IsConnected = false;
+  connectedSince = 0;
+  roamScanRunning = false;
 
   // 1) WiFi není připojená -> řeš WiFi (neblokující)
   if (WiFi.status() != WL_CONNECTED) {
@@ -106,6 +184,7 @@ void connectToNetwork() {
     if (wifiConnecting && (now - wifiStartTime > wifiTimeout)) {
       wifiConnecting = false;
       scanRunning = false;
+      roamScanRunning = false;
       // Nevymazávat uložené WiFi údaje — použít disconnect(false)
       WiFi.disconnect(false);
 
