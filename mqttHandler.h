@@ -7,7 +7,7 @@
 #include "config.h"
 #include <Preferences.h>
 
-inline constexpr const char* MODULE_VERSION_MQTT_HANDLER = "4.9";
+inline constexpr const char* MODULE_VERSION_MQTT_HANDLER = "5.0";
 
 // Deklarace externích konstant
 extern const char* PREF_NAMESPACE;
@@ -52,5 +52,7 @@ void restartDevice();
 void debugMQTT(const String& message);
 void reportFirmwareVersion();
 void reportBoardVersion();
+void requestDbStateRestore();
+bool isAwaitingDbStateRestore();
 void fillModuleVersions(JsonObject versionsObject);
 String buildModuleVersionsJson();

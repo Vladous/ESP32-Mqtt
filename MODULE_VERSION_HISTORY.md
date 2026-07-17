@@ -82,14 +82,17 @@ Doporuceny format zapisu:
 
 ## mqttHandler (mqttHandler.cpp, mqttHandler.h)
 
-- Aktualni verze: `4.9`
+- Aktualni verze: `5.0`
 - Historie:
+  - `2026-07-17 | 5.0 | Pridano rizeni DB sync po restartu (request, retry, timeout, fallback no-data/no-response) a ochrana proti predcasnemu prepisu stavu.`
   - `2026-07-14 | 4.9 | Inicialni zapis podle MODULE_VERSION_MQTT_HANDLER.`
 
 ## NetConnect (NetConnect.cpp, NetConnect.h)
 
-- Aktualni verze: `5.1`
+- Aktualni verze: `5.3`
 - Historie:
+  - `2026-07-17 | 5.3 | Presun rizeni modre sitove LED z hlavniho ino do NetConnect a pridani zpozdeneho zhasnuti, aby kratke WiFi/MQTT reconnecty nezpusobovaly probliky.`
+  - `2026-07-17 | 5.2 | Po MQTT connectu vyvolani requestu na DB sync obnovu stavu, pokud zarizeni ceka na inicialni data.`
   - `2026-07-14 | 5.1 | Prubezna kontrola silnejsiho AP a podminky pro bezpecne prepnuti (lokalni zmena, zatim bez samostatneho commitu verze v .h).`
   - `2026-07-08 | 5.0 | Oprava pripadu vypadku energie (git commit 41f0f39, 4.9 -> 5.0).`
   - `2026-07-08 | 4.9 | Zavedeni moduloveho verze v NetConnect.h (git commit e5b8a39).`

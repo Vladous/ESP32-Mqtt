@@ -337,11 +337,7 @@ void loop() {
   }
   // Úprava nstavení jasu kontrolek (Adjusting the brightness setting of the lights)
   analogWrite(LedPWR, LedBright / defaultConfig.KalibrKontrolRed);
-  if (IsConnected) {
-    analogWrite(LedWi, LedBright / defaultConfig.KalibrKontrolBlue);
-  }  else {
-    analogWrite(LedWi, 0);
-  }
+  updateNetworkStatusLed(LedBright / defaultConfig.KalibrKontrolBlue);
   
   if (Zap > 0) {
     analogWrite(PwrSw, LedBright / defaultConfig.KalibrKontrolGreen);

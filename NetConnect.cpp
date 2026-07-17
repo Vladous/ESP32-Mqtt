@@ -1,6 +1,30 @@
 #include "NetConnect.h"
 #include <cstring>
 
+extern void requestDbStateRestore();
+extern bool isAwaitingDbStateRestore();
+
+void updateNetworkStatusLed(int ledWiBrightness) {
+  static bool ledWiLatchedOn = false;
+  static unsigned long ledWiDisconnectSince = 0;
+  const unsigned long ledWiOffDelayMs = 1500;
+
+  bool netFullyConnected = (WiFi.status() == WL_CONNECTED) && client.connected();
+  if (netFullyConnected) {
+    ledWiLatchedOn = true;
+    ledWiDisconnectSince = 0;
+  } else {
+    if (ledWiDisconnectSince == 0) {
+      ledWiDisconnectSince = millis();
+    }
+    if ((millis() - ledWiDisconnectSince) >= ledWiOffDelayMs) {
+      ledWiLatchedOn = false;
+    }
+  }
+
+  analogWrite(LedWi, ledWiLatchedOn ? ledWiBrightness : 0);
+}
+
 void connectToNetwork() {
   static unsigned long lastAttemptTime = 0;
   static unsigned long wifiRetryInterval = 5000;
@@ -36,7 +60,6 @@ void connectToNetwork() {
   // 0) už jsme OK
   if (WiFi.status() == WL_CONNECTED && client.connected()) {
     IsConnected = true;
-    analogWrite(LedWi, LedL);
     offlineStart = 0; // reset watchdog
     wifiRetryInterval = wifiRetryMin;
 
@@ -214,6 +237,10 @@ void connectToNetwork() {
       client.subscribe(manualConfig.LedBrightnessTopic.c_str());
       IsConnected = true;
 
+      if (isAwaitingDbStateRestore()) {
+        requestDbStateRestore();
+      }
+
       Serial.println(WIFI_HOSTNAME);
       Serial.println(manualConfig.DeskName.c_str());
 
@@ -221,8 +248,6 @@ void connectToNetwork() {
         debugMQTT("Restart důvod: " + resetReasonMessage);
         resetReasonMessage = "";
       }
-
-      analogWrite(LedWi, LedL);
     } else {
       // Připojení selhalo - zkusí se znovu za 2s
       IsConnected = false;

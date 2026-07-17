@@ -12,6 +12,34 @@
 // Globální proměnné (pokud jsou potřeba)
 extern Preferences preferences;
 
+static bool awaitingDbStateRestore = true;
+static unsigned long dbSyncStartedAt = 0;
+static unsigned long lastDbSyncRequestAt = 0;
+static unsigned char dbSyncRetryCount = 0;
+
+static constexpr unsigned long DB_SYNC_RETRY_INTERVAL_MS = 5000;
+static constexpr unsigned long DB_SYNC_TIMEOUT_MS = 30000;
+static constexpr unsigned char DB_SYNC_MAX_RETRIES = 6;
+
+static void publishDbSyncFallback(const char* syncStatus, const char* reason) {
+  String out = "{\"device\":\"" + String(SvetloChr) +
+               "\",\"action\":\"dbSyncResult\",\"status\":\"" + String(syncStatus) +
+               "\",\"reason\":\"" + String(reason) +
+               "\",\"fallback\":\"localDefault\",\"brightness\":\"NaN\",\"note\":\"Vim o tobe, ale nic pro tebe nemam.\"}";
+
+  String resultTopic = String(SvetloChr) + "/db-sync-result";
+  client.publish(resultTopic.c_str(), out.c_str(), false);
+  client.publish(SvetloChr, out.c_str(), false);
+}
+
+static void finishDbSyncAwait(const String& reason) {
+  awaitingDbStateRestore = false;
+  dbSyncStartedAt = 0;
+  lastDbSyncRequestAt = 0;
+  dbSyncRetryCount = 0;
+  debugMQTT(reason);
+}
+
 // Helper funkce pro aktualizaci konfigurace
 template<typename TValue, typename TPref>
 void updateConfig(JsonDocument& doc, const char* key, TValue& configValue,
@@ -103,6 +131,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
       }
     }
   } else {
+    if (doc.containsKey("dbSyncDone")) {
+      finishDbSyncAwait("DB sync potvrzen, periodicke odesilani stavu povoleno.");
+    }
+    if (doc.containsKey("dbSyncNoData")) {
+      publishDbSyncFallback("noData", "DB nema ulozena data pro toto zarizeni.");
+      finishDbSyncAwait("DB sync bez dat, pouzivam lokalni vychozi stav.");
+      return;
+    }
+
     if (doc.containsKey("settings")) {
       const char* settingAction = doc["settings"];
       if (strcmp(settingAction, "set") == 0) {
@@ -123,6 +160,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
     } else if (doc.containsKey("help")) {
       sendHelpResponse();
     } else {
+      if (doc.containsKey("device")) {
+        finishDbSyncAwait("Dorazil device stav, periodicke odesilani stavu povoleno.");
+      }
       callbackDevice(doc);
     }
   }
@@ -249,6 +289,20 @@ void Poslat() {
 }
 
 void Poslat(String from = "") {
+  if (awaitingDbStateRestore && from != "force") {
+    requestDbStateRestore();
+
+    if (dbSyncStartedAt != 0 && (millis() - dbSyncStartedAt) >= DB_SYNC_TIMEOUT_MS) {
+      publishDbSyncFallback("timeout", "DB sync timeout, odpoved neprisla.");
+      finishDbSyncAwait("DB sync timeout, prechod na lokalni vychozi stav.");
+    } else if (dbSyncRetryCount >= DB_SYNC_MAX_RETRIES) {
+      publishDbSyncFallback("noResponse", "DB sync bez odpovedi po max poctu pokusu.");
+      finishDbSyncAwait("DB sync bez odpovedi, prechod na lokalni vychozi stav.");
+    }
+
+    return;
+  }
+
   reconnect();                                           // Volání funkce pro kontrolu připojení k WiFi a MQTT (WiFi and MQTT connection check)
   DynamicJsonDocument doc(1024);                         // Deklarace proměnné doc pro Json (Declaration of doc variable for Json)
   JsonArray devices = doc.createNestedArray("devices");  // Vytvoření pole devices k odeslání (Creating the devices array to send)
@@ -363,6 +417,43 @@ void reportFirmwareVersion() {
   // (snazší testování bez nutnosti extra subscribe na "version").
   client.publish("version", payload.c_str(), true);
   client.publish(SvetloChr, payload.c_str());
+}
+
+void requestDbStateRestore() {
+  if (!awaitingDbStateRestore) {
+    return;
+  }
+
+  const unsigned long now = millis();
+  if (dbSyncStartedAt == 0) {
+    dbSyncStartedAt = now;
+  }
+
+  if (dbSyncRetryCount >= DB_SYNC_MAX_RETRIES) {
+    return;
+  }
+
+  if (lastDbSyncRequestAt != 0 && (now - lastDbSyncRequestAt) < DB_SYNC_RETRY_INTERVAL_MS) {
+    return;
+  }
+
+  DynamicJsonDocument requestDoc(256);
+  requestDoc["device"] = String(SvetloChr);
+  requestDoc["action"] = "dbSyncRequest";
+  requestDoc["message"] = "Zarizeni nacist hodnoty z DB";
+  requestDoc["replyTopic"] = String(SvetloChr);
+
+  String requestTopic = String(SvetloChr) + "/db-sync";
+
+  char requestOut[256];
+  serializeJson(requestDoc, requestOut);
+  client.publish(requestTopic.c_str(), requestOut, false);
+  lastDbSyncRequestAt = now;
+  dbSyncRetryCount++;
+}
+
+bool isAwaitingDbStateRestore() {
+  return awaitingDbStateRestore;
 }
 
 void reportBoardVersion() {

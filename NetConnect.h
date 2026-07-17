@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "config.h"          // mqtt_server[], mqtt_port[], ManualConfig
 
-inline constexpr const char* MODULE_VERSION_NET_CONNECT = "5.1";
+inline constexpr const char* MODULE_VERSION_NET_CONNECT = "5.3";
 
 #include <WiFi.h>
 
@@ -30,3 +30,4 @@ extern String resetReasonMessage;
 void debugMQTT(const String& msg);
 
 void connectToNetwork();
+void updateNetworkStatusLed(int ledWiBrightness);
