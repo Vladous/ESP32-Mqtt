@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "config.h"          // mqtt_server[], mqtt_port[], ManualConfig
 
-inline constexpr const char* MODULE_VERSION_NET_CONNECT = "5.3";
+inline constexpr const char* MODULE_VERSION_NET_CONNECT = "5.4";
 
 #include <WiFi.h>
 

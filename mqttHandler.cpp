@@ -21,6 +21,33 @@ static constexpr unsigned long DB_SYNC_RETRY_INTERVAL_MS = 5000;
 static constexpr unsigned long DB_SYNC_TIMEOUT_MS = 30000;
 static constexpr unsigned char DB_SYNC_MAX_RETRIES = 6;
 
+static int getSmoothedRssi() {
+  static bool initialized = false;
+  static float rssiFiltered = -100.0f;
+
+  auto absf = [](float value) -> float {
+    return (value < 0.0f) ? -value : value;
+  };
+
+  const int rawRssi = WiFi.RSSI();
+  if (!initialized) {
+    rssiFiltered = static_cast<float>(rawRssi);
+    initialized = true;
+    return rawRssi;
+  }
+
+  float delta = static_cast<float>(rawRssi) - rssiFiltered;
+  float alpha = 0.25f;
+  if (absf(delta) > 8.0f) {
+    alpha = 0.45f;
+  } else if (absf(delta) < 2.0f) {
+    alpha = 0.15f;
+  }
+
+  rssiFiltered += alpha * delta;
+  return static_cast<int>(rssiFiltered + (rssiFiltered >= 0.0f ? 0.5f : -0.5f));
+}
+
 static void publishDbSyncFallback(const char* syncStatus, const char* reason) {
   String out = "{\"device\":\"" + String(SvetloChr) +
                "\",\"action\":\"dbSyncResult\",\"status\":\"" + String(syncStatus) +
@@ -339,6 +366,7 @@ void Poslat(String from = "") {
   if (devices.size() == 0) {
     doc.remove("devices");
   }
+
   if (manualConfig.useTemp) {
     float tempOut = Teplota;
     if (defaultConfig.TempUnit == "F") {
@@ -352,7 +380,7 @@ void Poslat(String from = "") {
     doc["Amp"] = PwrAmp;  // Přidání naměřeného odběru proudu do výstupu k odeslání (Adding the measured current draw to the output to send)
   }
   // Základní informace o zařízení
-  doc["signal"] = WiFi.RSSI();  // Přidání aktuální síly signálu do výstupu k odeslání (Adding the current signal strength to the output to send)
+  doc["signal"] = getSmoothedRssi();  // Vyhlazená síla signálu pro stabilnější telemetrii
   uint8_t* bssid = WiFi.BSSID();            // (Retrieve the MAC address of the WiFi hotspot)
   char bssidStr[18];
   sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",

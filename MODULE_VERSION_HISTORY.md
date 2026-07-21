@@ -82,15 +82,17 @@ Doporuceny format zapisu:
 
 ## mqttHandler (mqttHandler.cpp, mqttHandler.h)
 
-- Aktualni verze: `5.0`
+- Aktualni verze: `5.1`
 - Historie:
+  - `2026-07-21 | 5.1 | Doplneno chytre vyhlazovani RSSI pri telemetrii a stabilizace signalu bez zmeny topicu nebo payloadu.`
   - `2026-07-17 | 5.0 | Pridano rizeni DB sync po restartu (request, retry, timeout, fallback no-data/no-response) a ochrana proti predcasnemu prepisu stavu.`
   - `2026-07-14 | 4.9 | Inicialni zapis podle MODULE_VERSION_MQTT_HANDLER.`
 
 ## NetConnect (NetConnect.cpp, NetConnect.h)
 
-- Aktualni verze: `5.3`
+- Aktualni verze: `5.4`
 - Historie:
+  - `2026-07-21 | 5.4 | Obnoven rizeny roaming jen pri opravdu slabem signalu s delsim intervalem scanu a prisnejsimi podminkami pro prepinani AP.`
   - `2026-07-17 | 5.3 | Presun rizeni modre sitove LED z hlavniho ino do NetConnect a pridani zpozdeneho zhasnuti, aby kratke WiFi/MQTT reconnecty nezpusobovaly probliky.`
   - `2026-07-17 | 5.2 | Po MQTT connectu vyvolani requestu na DB sync obnovu stavu, pokud zarizeni ceka na inicialni data.`
   - `2026-07-14 | 5.1 | Prubezna kontrola silnejsiho AP a podminky pro bezpecne prepnuti (lokalni zmena, zatim bez samostatneho commitu verze v .h).`
@@ -105,8 +107,9 @@ Doporuceny format zapisu:
 
 ## sensors (sensors.cpp, sensors.h)
 
-- Aktualni verze: `4.9`
+- Aktualni verze: `5.0`
 - Historie:
+  - `2026-07-21 | 5.0 | Chytre vyrovnavani teploty a vlhkosti: adaptivni EMA filtr s omezenim skoku pro stabilnejsi telemetrii.`
   - `2026-07-14 | 4.9 | Inicialni zapis podle MODULE_VERSION_SENSORS.`
 
 ## stateControl (stateControl.cpp, stateControl.h)

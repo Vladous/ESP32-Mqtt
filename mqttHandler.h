@@ -7,7 +7,7 @@
 #include "config.h"
 #include <Preferences.h>
 
-inline constexpr const char* MODULE_VERSION_MQTT_HANDLER = "5.0";
+inline constexpr const char* MODULE_VERSION_MQTT_HANDLER = "5.1";
 
 // Deklarace externích konstant
 extern const char* PREF_NAMESPACE;

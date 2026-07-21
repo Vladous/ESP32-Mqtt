@@ -1,7 +1,7 @@
 #pragma once
 #include <config.h>
 
-inline constexpr const char* MODULE_VERSION_SENSORS = "4.9";
+inline constexpr const char* MODULE_VERSION_SENSORS = "5.0";
 
 extern volatile float Teplota;
 extern volatile float Vlhkost;

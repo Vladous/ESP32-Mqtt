@@ -70,6 +70,8 @@ void initInputs() {
 
 void initConnection() {
   setupWiFi();
+  WiFi.setAutoReconnect(true);
+  WiFi.setSleep(false);
   initOTA(WIFI_HOSTNAME);
 
   if (strcmp(mqtt_server, "") == 0) {
@@ -85,6 +87,8 @@ void initConnection() {
 
   client.setServer(mqtt_server, atoi(mqtt_port));
   client.setCallback(callback);
+  client.setKeepAlive(30);
+  client.setSocketTimeout(8);
 
   manualConfig.DeskName.toCharArray(SvetloChr, manualConfig.DeskName.length() + 1);
   connectToNetwork();

@@ -25,9 +25,40 @@ int dhtErrorCounterV = 0;  // Počítadlo chybných měření vlhkosti
 void updateTempSensor(DefaultConfig* config) {  
   TempAndHumidity newValues = dht.getTempAndHumidity();  // Načtení dat z DHT senzoru
   int pocetChybnychPokusu = 3;
+  static bool tempInitialized = false;
+  static bool humInitialized = false;
+
+  const float tempJumpClamp = 2.5f;  // max skok teploty za jeden cyklus (°C)
+  const float humJumpClamp = 6.0f;   // max skok vlhkosti za jeden cyklus (%)
+
+  auto adaptiveAlpha = [](float delta, float smallDelta, float mediumDelta) -> float {
+    if (delta <= smallDelta) return 0.20f;
+    if (delta <= mediumDelta) return 0.35f;
+    return 0.55f;
+  };
+
+  auto absf = [](float value) -> float {
+    return (value < 0.0f) ? -value : value;
+  };
+
+  auto clampStep = [](float current, float target, float maxStep) -> float {
+    float delta = target - current;
+    if (delta > maxStep) return current + maxStep;
+    if (delta < -maxStep) return current - maxStep;
+    return target;
+  };
+
   // Kontrola teploty
   if (!isnan(newValues.temperature)) {  
-    Teplota = (Teplota + (newValues.temperature / config->KalibrT)) / 2;
+    float measuredTemp = newValues.temperature / config->KalibrT;
+    if (!tempInitialized) {
+      Teplota = measuredTemp;
+      tempInitialized = true;
+    } else {
+      float limitedTarget = clampStep(Teplota, measuredTemp, tempJumpClamp);
+      float alpha = adaptiveAlpha(absf(limitedTarget - Teplota), 0.4f, 1.2f);
+      Teplota = Teplota + alpha * (limitedTarget - Teplota);
+    }
     dhtErrorCounterT = 0;  // Reset počítadla chyb pro teplotu
   } else {  
     dhtErrorCounterT++;  // Zvýšení počtu chyb
@@ -39,7 +70,15 @@ void updateTempSensor(DefaultConfig* config) {
 
   // Kontrola vlhkosti
   if (!isnan(newValues.humidity)) {  
-    Vlhkost = (Vlhkost + (newValues.humidity / config->KalibrV)) / 2;
+    float measuredHum = newValues.humidity / config->KalibrV;
+    if (!humInitialized) {
+      Vlhkost = measuredHum;
+      humInitialized = true;
+    } else {
+      float limitedTarget = clampStep(Vlhkost, measuredHum, humJumpClamp);
+      float alpha = adaptiveAlpha(absf(limitedTarget - Vlhkost), 1.0f, 3.5f);
+      Vlhkost = Vlhkost + alpha * (limitedTarget - Vlhkost);
+    }
     dhtErrorCounterV = 0;  // Reset počítadla chyb pro vlhkost
   } else {  
     dhtErrorCounterV++;  // Zvýšení počtu chyb
