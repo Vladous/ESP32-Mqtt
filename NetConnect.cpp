@@ -91,7 +91,7 @@ void connectToNetwork() {
   const unsigned long roamScanIntervalMs = 300000UL;  // 5 min
   const unsigned long roamMinConnectedMs = 180000UL;  // minimálně 3 minuty na aktuálním AP
   const int roamMinImprovementDb = 14;                // přepínat jen při výrazně lepším signálu
-  const int roamWeakRssiThreshold = -82;              // scan/přepnutí jen při opravdu slabém signálu
+  const int roamWeakRssiThreshold = -90;              // scan/přepnutí jen při opravdu slabém signálu
 
   const unsigned long now = millis();
 
@@ -125,10 +125,6 @@ void connectToNetwork() {
       if (pendingMqttDiag.length() > 0) {
         publishNetworkDiag(pendingMqttDiag);
       }
-      publishNetworkDiag("NET restore: downtimeMs=" + String(downtimeMs) +
-                         ", rssi=" + String(WiFi.RSSI()) +
-                         ", bssid=" + WiFi.BSSIDstr() +
-                         ", lastDrop={" + lastDropReason + "}");
       pendingMqttDiag = "";
       hadNetDrop = false;
       netDropStartedAt = 0;
