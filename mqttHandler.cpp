@@ -60,6 +60,10 @@ static void publishDbSyncFallback(const char* syncStatus, const char* reason) {
 }
 
 static void finishDbSyncAwait(const String& reason) {
+  if (!awaitingDbStateRestore) {
+    return;
+  }
+
   awaitingDbStateRestore = false;
   dbSyncStartedAt = 0;
   lastDbSyncRequestAt = 0;
@@ -175,9 +179,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
         callbackSettingsGet();
       }
     } else if (doc.containsKey("reset")) {
-      resetCalibreData();
-      resetWifiManager();
-      restartDevice();
+
+      const char* resetAction = doc["reset"];
+      if (strcmp(settingAction, "calibre") == 0) {
+        resetCalibreData();  
+      } else if (strcmp(settingAction, "wifi") == 0) {
+        resetWifiManager();  
+      }
+
+      //resetCalibreData();
+      //resetWifiManager();
+
+
     } else if (doc.containsKey("boardVersion")) {
       reportBoardVersion();
     } else if (doc.containsKey("reportFirmwareVersion") || doc.containsKey("firmwareVersion")) {
@@ -187,7 +200,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     } else if (doc.containsKey("help")) {
       sendHelpResponse();
     } else {
-      if (doc.containsKey("device")) {
+      if (awaitingDbStateRestore && doc.containsKey("device")) {
         finishDbSyncAwait("Dorazil device stav, periodicke odesilani stavu povoleno.");
       }
       callbackDevice(doc);
