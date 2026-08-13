@@ -181,9 +181,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
     } else if (doc.containsKey("reset")) {
 
       const char* resetAction = doc["reset"];
-      if (strcmp(settingAction, "calibre") == 0) {
+      if (strcmp(resetAction, "calibre") == 0) {
         resetCalibreData();  
-      } else if (strcmp(settingAction, "wifi") == 0) {
+      } else if (strcmp(resetAction, "wifi") == 0) {
         resetWifiManager();  
       }
 
