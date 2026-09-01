@@ -154,7 +154,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
         // Extrahování hodin a minut
         int hours, minutes;
         sscanf(localTime, "%*d. %*d. %*d %d:%d", &hours, &minutes);
-        if (hours >= defaultConfig.NightStartHour || hours < defaultConfig.NightEndHour) {
+        if (!defaultConfig.NightKontrolLed) {
+          defaultConfig.NightKontrolLedEnable = false;
+        } else if (hours >= defaultConfig.NightStartHour || hours < defaultConfig.NightEndHour) {
           defaultConfig.NightKontrolLedEnable = true;
         } else {
           defaultConfig.NightKontrolLedEnable = false;

@@ -16,13 +16,13 @@ inline constexpr const char* MODULE_VERSION_CONFIG = "4.9";
 
 // Konfigurace nastavení zařízení (Configuration settings device)
 struct ManualConfig {    
-  const String DeskName = "Test_Board";                     // !! CHANGE !!  Topic název zařízení (Topic device name)
-  const uint8_t DeviceType = LED_WHITE1;               // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
-  const bool useTlac = true;                           // !! CHANGE !!  Použití tlačítka (Using the button)
-  const uint8_t Stisk = LED_WHITE1;                    // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY ) (Button settings)
+  const String DeskName = "Svetlo_05";                     // !! CHANGE !!  Topic název zařízení (Topic device name)
+  const uint8_t DeviceType = LED_RGB;               // !! CHANGE !!  LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY
+  const bool useTlac = false;                           // !! CHANGE !!  Použití tlačítka (Using the button)
+  const uint8_t Stisk = LED_RGB;                    // !! CHANGE !!  Nastavení tlačítka ( LED_WHITE1 | LED_WHITE2 | LED_WHITE3 | LED_RGB | DEVICE_RELAY ) (Button settings)
   const bool useClap = false;                           // !! CHANGE !!  Použití mikrofonu (Using the microphone)
   const bool useWave = false;                           // !! CHANGE !!  Aktivace funkce zapnutí mávnutím (Activation by waving in front of the distance sensor)
-  const bool useTemp = true;                            // !! CHANGE !!  Použití DHT sezoru měření teploty (Using a DHT sensor to measure temperature)
+  const bool useTemp = false;                            // !! CHANGE !!  Použití DHT sezoru měření teploty (Using a DHT sensor to measure temperature)
   const bool useAmpMeter = false;                       // !! CHANGE !!  Použití měření odběru (Using current draw measurement)
   const bool useLedBrightnessControl = true;            // !! CHANGE !!  Použití ovládání jasu kontrolních led
   const String LedBrightnessTopic = "Led_brightness";
@@ -38,8 +38,8 @@ struct DefaultConfig {
   int NightEndHour = 6;
   int NightEndMin = 0;
   // Kalibrační hodnoty
-  float KalibrT = 1.56;                                 // 1.56 (tepl_2 - 1.79)
-  float KalibrV = 0.58;                                 // 0.42 (tepl_2 - 1.79)
+  float KalibrT = 1.60;                                 // 1.60
+  float KalibrV = 0.55;                                 // 0.55
   int ClapThreshold = 15;                               // Výchozí nastavení hladiny detekce tlesknutí (Default clap detection level setting)
   float CekejOdeslat = 20.0f;                           // Výchozí nastavení prodlevy mezi odesláním dat (Default setting for the delay between sending data)
   float CekejMereni = 2.23f;                            // Výchozí nastavení prodlevy mezi měřením DHT (Default setting for the delay between DHT measurements)

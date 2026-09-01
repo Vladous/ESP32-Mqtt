@@ -332,7 +332,7 @@ void loop() {
     PoslatOnOff = false;
   } 
   int LedBright = LedL;
-  if (defaultConfig.NightKontrolLedEnable) {
+  if (defaultConfig.NightKontrolLed && defaultConfig.NightKontrolLedEnable) {
     LedBright = LedBright /10;
   }
   // Úprava nstavení jasu kontrolek (Adjusting the brightness setting of the lights)
