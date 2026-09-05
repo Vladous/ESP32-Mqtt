@@ -21,8 +21,9 @@ Doporuceny format zapisu:
 
 ## ESP32-Mqtt.ino
 
-- Aktualni verze: `4.9`
+- Aktualni verze: `5.0`
 - Historie:
+  - `2026-09-05 | 5.0 | Oprava obnovy Wi-Fi po vypadku napajeni: zarizeni neotevira WiFiManager pri docasne nedostupnem routeru a pokracuje v automatickem pripojovani.`
   - `2026-07-14 | 4.9 | Aktualni stav MAIN_VERSION (beze zmeny cisla verze).`
   - `2025-06-14 | 4.9 | Pridani moznosti nastaveni jednotky vzdalenosti pro mavnuti.`
   - `2025-05-14 | 4.8 | Nastaveni vystupu teploty v jednotkach C/F.`
@@ -90,8 +91,9 @@ Doporuceny format zapisu:
 
 ## NetConnect (NetConnect.cpp, NetConnect.h)
 
-- Aktualni verze: `5.4`
+- Aktualni verze: `5.5`
 - Historie:
+  - `2026-09-05 | 5.5 | Ochrana proti pripojovani s prazdnymi Wi-Fi udaji a pravidelne hledani silnejsiho AP se stejnym SSID.`
   - `2026-07-21 | 5.4 | Obnoven rizeny roaming jen pri opravdu slabem signalu s delsim intervalem scanu a prisnejsimi podminkami pro prepinani AP.`
   - `2026-07-17 | 5.3 | Presun rizeni modre sitove LED z hlavniho ino do NetConnect a pridani zpozdeneho zhasnuti, aby kratke WiFi/MQTT reconnecty nezpusobovaly probliky.`
   - `2026-07-17 | 5.2 | Po MQTT connectu vyvolani requestu na DB sync obnovu stavu, pokud zarizeni ceka na inicialni data.`
@@ -120,8 +122,9 @@ Doporuceny format zapisu:
 
 ## wifiManagerHandler (wifiManagerHandler.cpp, wifiManagerHandler.h)
 
-- Aktualni verze: `5.0`
+- Aktualni verze: `5.1`
 - Historie:
+  - `2026-09-05 | 5.1 | WiFiManager se spousti pouze pri chybejicich ulozenych credentials; docasny vypadek routeru se resi opakovanym pripojovanim.`
   - `2026-07-14 | 5.0 | Aktualni stav dle MODULE_VERSION_WIFI_MANAGER.`
   - `2026-07-08 | 5.0 | Oprava pripadu vypadku energie (git commit 41f0f39, 4.9 -> 5.0).`
   - `2026-07-08 | 4.9 | Zavedeni modulove verze v wifiManagerHandler.h (git commit e5b8a39).`

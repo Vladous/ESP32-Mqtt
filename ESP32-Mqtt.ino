@@ -39,7 +39,7 @@
 // v4.8.14.05.2025 °C / °F nastavení pro výstup teploty (°C / °F setting for temperature output)
 // v4.9.14.06.2025 Přidání možnosti nastavení jednotky pro vzdálenost pro mávnutí (Adding the ability to set the unit for distance for waving)
 
-const char* MAIN_VERSION = "4.9";
+const char* MAIN_VERSION = "5.0";
 //
 // ESP32 desky - https://dl.espressif.com/dl/package_esp32_index.json
 //
@@ -259,7 +259,7 @@ const char* PREF_NAMESPACE = "mqtt-app";                               // Jmenn�
 const char mqtt_ip[] = "192.168.1.1";                                  // Defaultní adresa MQTT serveru (Lze nastavit přes WiFiManager) (Default MQTT server address (Can be set via WiFiManager))
 const char* WIFI_HOSTNAME = manualConfig.DeskName.c_str();
 char ssid[32];                                                         // Proměnná pro SSID (Variable for SSID)
-char password[32];                                                     // Proměnná pro heslo (Variable for password)
+char password[64];                                                     // Proměnná pro heslo (Variable for password)
 // Mqtt proměnné nastavení
 char mqtt_server[40];                                                  // Proměnná pro MQTT IP adress (Variable for MQTT IP adress)
 char mqtt_port[6] = "1883";                                            // Proměnná pro MQTT port (A variable for the MQTT port)

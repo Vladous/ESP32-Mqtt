@@ -33,12 +33,13 @@ bool setupWiFi() {
 
   // 1) Nejprve zkoušej připojení na již uložené WiFi údaje (STA) s postupným zpomalováním.
   //    Teprve po delší době bez úspěchu přepneme do WiFiManager portálu.
-  const unsigned long stationTryWindowMs = 180000UL;   // 3 minuty
+  const unsigned long stationTryWindowMs = 30000UL;    // počáteční čekání, ne blokovat start několik minut
   const unsigned long backoffStartMs = 4000UL;
   const unsigned long backoffMaxMs = 30000UL;
 
   unsigned long backoffMs = backoffStartMs;
   unsigned long startedAt = millis();
+  bool hasStoredCredentials = WiFi.SSID().length() > 0;
 
   WiFi.mode(WIFI_STA);
   WiFi.begin();  // použije uložené credentials z NVS
@@ -80,6 +81,14 @@ bool setupWiFi() {
     savedPort.toCharArray(mqtt_port, sizeof(mqtt_port));
 
     return true;
+  }
+
+  // Nedostupný router není důvod pro otevření konfiguračního portálu.
+  // WiFi.begin() používá údaje uložené v NVS a WiFi je bude dál obnovovat
+  // z hlavní smyčky, až se infrastruktura po výpadku napájení vrátí.
+  if (hasStoredCredentials || WiFi.SSID().length() > 0) {
+    Serial.println("Ulozene WiFi udaje jsou k dispozici, WiFiManager se nespousti.");
+    return false;
   }
 
   // Parametry pro MQTT

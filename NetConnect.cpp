@@ -91,7 +91,6 @@ void connectToNetwork() {
   const unsigned long roamScanIntervalMs = 300000UL;  // 5 min
   const unsigned long roamMinConnectedMs = 180000UL;  // minimálně 3 minuty na aktuálním AP
   const int roamMinImprovementDb = 14;                // přepínat jen při výrazně lepším signálu
-  const int roamWeakRssiThreshold = -90;              // scan/přepnutí jen při opravdu slabém signálu
 
   const unsigned long now = millis();
 
@@ -190,16 +189,15 @@ void connectToNetwork() {
         }
       }
 
-      // Spuštění periodického roaming scanu pouze při slabším signálu.
-      int currentRssiForScan = WiFi.RSSI();
+      // Pravidelně ověř dostupné AP se stejnými údaji. Přepnutí se provede
+      // až při výrazně lepším signálu, takže běžné kolísání spojení neruší.
       if (!wifiConnecting && !roamScanRunning &&
-          currentRssiForScan <= roamWeakRssiThreshold &&
           (now - connectedSince) >= roamMinConnectedMs &&
           (now - lastRoamScanAt) >= roamScanIntervalMs) {
         lastRoamScanAt = now;
         WiFi.scanDelete();
         WiFi.scanNetworks(true);  // async
-        publishNetworkDiag("Roam scan start: rssi=" + String(currentRssiForScan));
+        publishNetworkDiag("Roam scan start: rssi=" + String(WiFi.RSSI()));
         roamScanRunning = true;
       }
     } else if (roamScanRunning) {
@@ -242,7 +240,13 @@ void connectToNetwork() {
       lastAttemptTime = now;     // ✅ chybělo v původním kódu
       wifiConnecting = true;
       wifiStartTime = now;
-      WiFi.begin(ssid, password);
+      // Po restartu mohou být aplikační buffery ještě prázdné. Použij
+      // credentials uložené WiFi knihovnou v NVS, ne prázdný SSID/password.
+      if (strlen(ssid) == 0 || strlen(password) == 0) {
+        WiFi.begin();
+      } else {
+        WiFi.begin(ssid, password);
+      }
       return;
     }
 
@@ -266,6 +270,12 @@ void connectToNetwork() {
   // 2) WiFi připojena -> reset WiFi stavu
   wifiConnecting = false;
   wifiRetryInterval = wifiRetryMin;
+  if (strlen(ssid) == 0) {
+    WiFi.SSID().toCharArray(ssid, 32);
+  }
+  if (strlen(password) == 0) {
+    WiFi.psk().toCharArray(password, 64);
+  }
 
   // 3) WiFi je OK, ale MQTT není připojen -> zkus connect (jednou za 2s)
   if (!client.connected()) {
